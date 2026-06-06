@@ -34,6 +34,8 @@ dotnet run --project .\windows-monitor.csproj
 .\dist\windows-monitor.exe
 ```
 
+`build.ps1` 会自动读取当前最新 `v*` tag，并把补丁号加 1 作为本地构建版本，同时在控制台输出建议发布 tag。发布新版时按脚本提示的 tag 打标即可，不需要手动修改代码里的版本号。
+
 构建完成后会生成：
 
 - `release/windows-monitor.zip`：应用完整压缩包

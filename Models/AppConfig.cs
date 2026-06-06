@@ -21,7 +21,7 @@ public sealed class AppConfig
     public string WebhookBodyTemplate { get; set; } = "{\"title\":\"{title}\",\"body\":\"{body}\",\"createdAt\":\"{time}\",\"window\":\"{window}\",\"distance\":{distance}}";
     public List<NotificationChannelConfig> NotificationChannels { get; set; } = [];
     public bool OcrEnabled { get; set; } = true;
-    public string OcrMode { get; set; } = "wxocr";
+    public string OcrMode { get; set; } = "local";
     public string OcrUrl { get; set; } = "http://192.168.88.3:5000/ocr";
     public string OcrCommand { get; set; } = "tesseract";
     public string OcrArguments { get; set; } = "\"{image}\" stdout -l chi_sim+eng --psm 6";

@@ -118,7 +118,7 @@ public sealed class MainForm : Form
             ColumnCount = 1,
             BackColor = PageBack
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         Controls.Add(root);
 
@@ -144,68 +144,80 @@ public sealed class MainForm : Form
 
     private Control BuildHeader()
     {
-        var header = new TableLayoutPanel
+        var header = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = HeaderBack,
-            ColumnCount = 4,
-            Padding = new Padding(18, 10, 18, 10)
+            Padding = new Padding(18, 8, 18, 8)
         };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
-
-        var titleBox = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            RowCount = 2,
-            ColumnCount = 1,
-            BackColor = Color.Transparent
-        };
-        titleBox.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
-        titleBox.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
 
         var title = new Label
         {
             Text = AppInfo.FullTitle,
-            Dock = DockStyle.Fill,
+            AutoSize = false,
             ForeColor = Color.White,
-            Font = new Font(Font.FontFamily, 15F, FontStyle.Bold),
-            TextAlign = ContentAlignment.BottomLeft
+            Font = new Font(Font.FontFamily, 13.5F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Location = new Point(22, 14),
+            Size = new Size(520, 30),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
-        titleBox.Controls.Add(title, 0, 0);
+        header.Controls.Add(title);
 
         var about = new Label
         {
             Text = AppInfo.AboutText,
-            Dock = DockStyle.Fill,
+            AutoSize = false,
             ForeColor = Color.FromArgb(178, 190, 204),
-            Font = new Font(Font.FontFamily, 8F, FontStyle.Regular),
-            TextAlign = ContentAlignment.TopLeft
+            Font = new Font(Font.FontFamily, 8F, FontStyle.Regular, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Location = new Point(24, 45),
+            Size = new Size(520, 20),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
-        titleBox.Controls.Add(about, 0, 1);
-        header.Controls.Add(titleBox, 0, 0);
+        header.Controls.Add(about);
 
         _statePill.Text = "\u5c31\u7eea";
-        _statePill.Dock = DockStyle.Fill;
         _statePill.TextAlign = ContentAlignment.MiddleCenter;
         _statePill.ForeColor = Color.White;
         _statePill.BackColor = Color.FromArgb(66, 78, 92);
-        _statePill.Margin = new Padding(8, 8, 8, 8);
-        header.Controls.Add(_statePill, 1, 0);
+        _statePill.Size = new Size(132, 42);
+        _statePill.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        header.Controls.Add(_statePill);
 
         _checkUpdateButton.Text = "\u68c0\u67e5\u66f4\u65b0";
         StyleButton(_checkUpdateButton, Color.FromArgb(66, 78, 92), Color.White);
-        _checkUpdateButton.Dock = DockStyle.Fill;
+        _checkUpdateButton.Size = new Size(148, 42);
+        _checkUpdateButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _checkUpdateButton.Click += async (_, _) => await CheckForUpdatesAsync(userInitiated: true);
-        header.Controls.Add(_checkUpdateButton, 2, 0);
+        header.Controls.Add(_checkUpdateButton);
 
         _monitorButton.Text = "\u5f00\u59cb\u76d1\u63a7";
         StyleButton(_monitorButton, Accent, Color.White);
-        _monitorButton.Dock = DockStyle.Fill;
+        _monitorButton.Size = new Size(180, 42);
+        _monitorButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _monitorButton.Click += async (_, _) => await ToggleMonitorAsync();
-        header.Controls.Add(_monitorButton, 3, 0);
+        header.Controls.Add(_monitorButton);
+
+        void LayoutHeader()
+        {
+            const int gap = 10;
+            var right = header.ClientSize.Width - 18;
+            _monitorButton.Location = new Point(right - _monitorButton.Width, 22);
+            right = _monitorButton.Left - gap;
+            _checkUpdateButton.Location = new Point(right - _checkUpdateButton.Width, 22);
+            right = _checkUpdateButton.Left - gap;
+            _statePill.Location = new Point(right - _statePill.Width, 22);
+
+            var titleRight = Math.Max(260, _statePill.Left - 28);
+            title.Width = Math.Max(220, titleRight - title.Left);
+            about.Width = title.Width;
+        }
+
+        header.SizeChanged += (_, _) => LayoutHeader();
+        header.HandleCreated += (_, _) => LayoutHeader();
 
         return header;
     }
@@ -1189,7 +1201,7 @@ public sealed class MainForm : Form
         _config.MonitorMode = "keyword";
 
         _config.OcrEnabled = _ocrEnabled.Checked;
-        _config.OcrMode = _ocrMode.SelectedItem?.ToString() ?? "wxocr";
+        _config.OcrMode = _ocrMode.SelectedItem?.ToString() ?? "local";
         _config.OcrUrl = _ocrUrl.Text.Trim();
         _config.OcrCommand = _ocrCommand.Text.Trim();
         _config.OcrArguments = _ocrArguments.Text.Trim();
