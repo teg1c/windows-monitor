@@ -124,7 +124,7 @@ Content-Type: application/json
 - 漏识别：扩大一点系统消息区域，降低 wxocr 最低置信度，或换更适合中文游戏字体的 OCR 引擎。
 - Tesseract 识别差：确认安装了 `chi_sim` 中文语言包，并尝试调 `--psm` 参数。
 
-配置保存到 `config.local.json`。
+配置保存到 `%LOCALAPPDATA%\windows-monitor\config.local.json`。旧版本放在运行目录的 `config.local.json` 会在首次启动时自动迁移。
 
 ## Webhook 自定义
 
@@ -158,7 +158,7 @@ JSON 模板里直接用 `{body}`；URL 或表单场景可用 `{bodyUrl}`、`{tit
 日志文件：
 
 ```text
-logs/app.log
+%LOCALAPPDATA%\windows-monitor\logs\app.log
 ```
 
 界面“日志”页签可以查看、刷新、清空日志，并设置最大日志行数。默认最大保留 `1000` 行，避免日志无限增长。

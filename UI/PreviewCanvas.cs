@@ -33,6 +33,7 @@ public sealed class PreviewCanvas : Control
         DoubleBuffered = true;
         BackColor = Color.FromArgb(24, 28, 34);
         Cursor = Cursors.Cross;
+        ResizeRedraw = true;
     }
 
     public void SetRegion(Rectangle region)

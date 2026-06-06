@@ -4,7 +4,7 @@ public sealed class LogService
 {
     private readonly object _lock = new();
 
-    public string LogPath { get; } = Path.Combine(AppContext.BaseDirectory, "logs", "app.log");
+    public string LogPath { get; } = ResolveLogPath();
 
     public void Info(string message, int maxLines)
     {
@@ -52,6 +52,12 @@ public sealed class LogService
             File.AppendAllText(LogPath, line + Environment.NewLine);
             Trim(maxLines);
         }
+    }
+
+    private static string ResolveLogPath()
+    {
+        AppPaths.CopyLegacyFileIfNeeded(AppPaths.LegacyLogPath, AppPaths.LogPath);
+        return AppPaths.LogPath;
     }
 
     private void Trim(int maxLines)

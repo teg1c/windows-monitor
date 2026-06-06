@@ -8,10 +8,11 @@ public sealed class StateStore
     public string LastOcrText { get; set; } = "";
     public DateTimeOffset LastChangedAt { get; set; }
 
-    public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, ".mhxy-notify-state.json");
+    public static string DefaultPath => AppPaths.StatePath;
 
     public static StateStore Load()
     {
+        AppPaths.CopyLegacyFileIfNeeded(AppPaths.LegacyStatePath, DefaultPath);
         if (!File.Exists(DefaultPath))
         {
             return new StateStore();
@@ -23,6 +24,7 @@ public sealed class StateStore
 
     public void Save()
     {
+        AppPaths.EnsureDataDirectory();
         var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(DefaultPath, json);
     }

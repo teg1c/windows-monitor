@@ -18,6 +18,10 @@ public sealed record WindowInfo(IntPtr Handle, string Title, string ClassName, R
 public static class Win32Window
 {
     private const int Srccopy = 0x00CC0020;
+    private const int SmXvirtualscreen = 76;
+    private const int SmYvirtualscreen = 77;
+    private const int SmCxvirtualscreen = 78;
+    private const int SmCyvirtualscreen = 79;
 
     public static WindowInfo DesktopWindow { get; } = new(IntPtr.Zero, "\u6574\u4e2a\u684c\u9762", "DESKTOP");
 
@@ -116,7 +120,7 @@ public static class Win32Window
 
     private static IReadOnlyList<WindowInfo> GetDesktopSources()
     {
-        var sources = new List<WindowInfo> { DesktopWindow };
+        var sources = new List<WindowInfo> { DesktopWindow with { CaptureBounds = GetVirtualScreenBounds() } };
         var index = 1;
         foreach (var screen in Screen.AllScreens)
         {
@@ -132,7 +136,7 @@ public static class Win32Window
 
     private static Rectangle GetDesktopBounds(WindowInfo window)
     {
-        return window.CaptureBounds ?? SystemInformation.VirtualScreen;
+        return window.CaptureBounds ?? GetVirtualScreenBounds();
     }
 
     private static Bitmap CaptureDesktop(Rectangle bounds)
@@ -144,8 +148,38 @@ public static class Win32Window
 
         var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
         using var graphics = Graphics.FromImage(bitmap);
-        graphics.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size, CopyPixelOperation.SourceCopy);
+        var desktopDc = GetDC(IntPtr.Zero);
+        if (desktopDc == IntPtr.Zero)
+        {
+            bitmap.Dispose();
+            throw new InvalidOperationException("\u65e0\u6cd5\u83b7\u53d6\u684c\u9762 DC\u3002");
+        }
+
+        var targetDc = graphics.GetHdc();
+        try
+        {
+            if (!BitBlt(targetDc, 0, 0, bounds.Width, bounds.Height, desktopDc, bounds.X, bounds.Y, Srccopy))
+            {
+                bitmap.Dispose();
+                throw new InvalidOperationException("\u684c\u9762\u622a\u56fe\u5931\u8d25\u3002");
+            }
+        }
+        finally
+        {
+            graphics.ReleaseHdc(targetDc);
+            ReleaseDC(IntPtr.Zero, desktopDc);
+        }
+
         return bitmap;
+    }
+
+    private static Rectangle GetVirtualScreenBounds()
+    {
+        return new Rectangle(
+            GetSystemMetrics(SmXvirtualscreen),
+            GetSystemMetrics(SmYvirtualscreen),
+            GetSystemMetrics(SmCxvirtualscreen),
+            GetSystemMetrics(SmCyvirtualscreen));
     }
 
     private static string GetWindowTitle(IntPtr hwnd)
@@ -193,6 +227,9 @@ public static class Win32Window
 
     [DllImport("user32.dll")]
     private static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
 
     [DllImport("gdi32.dll")]
     private static extern bool BitBlt(IntPtr hdcDest, int xDest, int yDest, int width, int height, IntPtr hdcSrc, int xSrc, int ySrc, int rop);

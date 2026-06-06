@@ -31,10 +31,11 @@ public sealed class AppConfig
     public string WatchKeywords { get; set; } = "\u7f51\u7edc\u9519\u8bef\r\n\u8bf7\u91cd\u65b0\u767b\u5f55\r\n\u7f51\u7edc\u6709\u95ee\u9898";
     public int MaxLogLines { get; set; } = 1000;
 
-    public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "config.local.json");
+    public static string DefaultPath => AppPaths.ConfigPath;
 
     public static AppConfig Load()
     {
+        AppPaths.CopyLegacyFileIfNeeded(AppPaths.LegacyConfigPath, DefaultPath);
         if (!File.Exists(DefaultPath))
         {
             return new AppConfig();
@@ -46,6 +47,7 @@ public sealed class AppConfig
 
     public void Save()
     {
+        AppPaths.EnsureDataDirectory();
         var json = JsonSerializer.Serialize(this, JsonOptions());
         File.WriteAllText(DefaultPath, json);
     }
