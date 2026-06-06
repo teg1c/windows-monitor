@@ -780,7 +780,7 @@ public sealed class MainForm : Form
         var hit = FindKeywordHit(ocrResult.FullText, GetWatchKeywords());
         if (hit is null)
         {
-            _lastKeywordHit = "";
+            ResetKeywordNotificationState();
             _keywordLastHitText.Text = string.IsNullOrWhiteSpace(context)
                 ? $"\u6765\u6e90\uff1a{GetSelectedSourceTitle()}{Environment.NewLine}\u672a\u547d\u4e2d\uff1a\u672c\u6b21 OCR \u672a\u8bc6\u522b\u5230\u6587\u672c"
                 : $"\u6765\u6e90\uff1a{GetSelectedSourceTitle()}{Environment.NewLine}\u672a\u547d\u4e2d{Environment.NewLine}{context}";
@@ -789,6 +789,15 @@ public sealed class MainForm : Form
         }
 
         var normalizedHit = OcrTextParser.NormalizeText(hit);
+        var signature = BuildKeywordSignature(normalizedHit, ocrResult.FullText);
+        var unchangedHit = string.Equals(signature, _lastKeywordSignature, StringComparison.OrdinalIgnoreCase);
+        if (unchangedHit && _unchangedKeywordNotifyCount >= MaxUnchangedKeywordNotifications)
+        {
+            _keywordLastHitText.Text = $"\u6765\u6e90\uff1a{GetSelectedSourceTitle()}{Environment.NewLine}\u533a\u57df\uff1a{DescribeRegion(region, capture.Size)}{Environment.NewLine}\u547d\u4e2d\uff1a{hit}{Environment.NewLine}\u672a\u53d1\u9001\uff1a\u753b\u9762\u672a\u53d8\u5316\uff0c\u5df2\u8fbe\u5230 {MaxUnchangedKeywordNotifications} \u6b21\u63d0\u9192\u4e0a\u9650{Environment.NewLine}{context}";
+            SetStatus($"\u547d\u4e2d\u5173\u952e\u8bcd\u201c{hit}\u201d\uff0c\u753b\u9762\u672a\u53d8\u5316\uff0c\u5df2\u8fbe\u5230 {MaxUnchangedKeywordNotifications} \u6b21\u63d0\u9192\u4e0a\u9650");
+            return false;
+        }
+
         var cooldown = TimeSpan.FromSeconds(Math.Max(0, (int)_cooldownInput.Value));
         if (normalizedHit == _lastKeywordHit && cooldown > TimeSpan.Zero && DateTimeOffset.Now - _lastKeywordNotifyAt < cooldown)
         {
@@ -797,6 +806,7 @@ public sealed class MainForm : Form
         }
 
         _lastKeywordHit = normalizedHit;
+        _lastKeywordSignature = signature;
         _lastKeywordNotifyAt = DateTimeOffset.Now;
 
         _keywordLastHitText.Text = $"\u6765\u6e90\uff1a{GetSelectedSourceTitle()}{Environment.NewLine}\u533a\u57df\uff1a{DescribeRegion(region, capture.Size)}{Environment.NewLine}\u547d\u4e2d\uff1a{hit}{Environment.NewLine}{context}";
@@ -811,7 +821,8 @@ public sealed class MainForm : Form
                 body,
                 _config,
                 new NotificationEvent(_selectedWindow?.Title ?? "", 0, region, ocrResult.FullText));
-            LogInfo($"\u5173\u952e\u8bcd\u5df2\u63d0\u9192\uff1a{hit}");
+            _unchangedKeywordNotifyCount = unchangedHit ? _unchangedKeywordNotifyCount + 1 : 1;
+            LogInfo($"\u5173\u952e\u8bcd\u5df2\u63d0\u9192\uff1a{hit}\uff1b\u5f53\u524d\u672a\u53d8\u5316\u8fde\u7eed\u63d0\u9192 {_unchangedKeywordNotifyCount}/{MaxUnchangedKeywordNotifications}");
             return true;
         }
         catch (Exception ex)
@@ -820,6 +831,19 @@ public sealed class MainForm : Form
             SetStatus($"\u5173\u952e\u8bcd\u901a\u77e5\u5931\u8d25\uff1a{ex.Message}");
             return false;
         }
+    }
+
+    private void ResetKeywordNotificationState()
+    {
+        _lastKeywordHit = "";
+        _lastKeywordSignature = "";
+        _unchangedKeywordNotifyCount = 0;
+        _lastKeywordNotifyAt = DateTimeOffset.MinValue;
+    }
+
+    private static string BuildKeywordSignature(string normalizedHit, string ocrText)
+    {
+        return normalizedHit + "|" + OcrTextParser.NormalizeText(ocrText);
     }
 
     private Rectangle GetActiveMonitorRegion(Bitmap capture)
