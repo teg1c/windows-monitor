@@ -1,0 +1,244 @@
+//go:build windows
+
+package win
+
+import (
+	"fmt"
+	"image"
+	"strings"
+	"syscall"
+	"unsafe"
+
+	"mhxy-notify/internal/config"
+)
+
+type WindowInfo struct {
+	Handle    uintptr
+	Title     string
+	ClassName string
+}
+
+var (
+	user32 = syscall.NewLazyDLL("user32.dll")
+	gdi32  = syscall.NewLazyDLL("gdi32.dll")
+
+	procEnumWindows       = user32.NewProc("EnumWindows")
+	procIsWindowVisible   = user32.NewProc("IsWindowVisible")
+	procGetWindowTextW    = user32.NewProc("GetWindowTextW")
+	procGetWindowTextLenW = user32.NewProc("GetWindowTextLengthW")
+	procGetClassNameW     = user32.NewProc("GetClassNameW")
+	procGetClientRect     = user32.NewProc("GetClientRect")
+	procGetDC             = user32.NewProc("GetDC")
+	procReleaseDC         = user32.NewProc("ReleaseDC")
+
+	procCreateCompatibleDC     = gdi32.NewProc("CreateCompatibleDC")
+	procDeleteDC               = gdi32.NewProc("DeleteDC")
+	procCreateCompatibleBitmap = gdi32.NewProc("CreateCompatibleBitmap")
+	procSelectObject           = gdi32.NewProc("SelectObject")
+	procDeleteObject           = gdi32.NewProc("DeleteObject")
+	procBitBlt                 = gdi32.NewProc("BitBlt")
+	procGetDIBits              = gdi32.NewProc("GetDIBits")
+)
+
+const (
+	srccopy       = 0x00CC0020
+	biRGB         = 0
+	dibRGBColors  = 0
+	maxClassChars = 256
+)
+
+type rect struct {
+	Left   int32
+	Top    int32
+	Right  int32
+	Bottom int32
+}
+
+type bitmapInfoHeader struct {
+	Size          uint32
+	Width         int32
+	Height        int32
+	Planes        uint16
+	BitCount      uint16
+	Compression   uint32
+	SizeImage     uint32
+	XPelsPerMeter int32
+	YPelsPerMeter int32
+	ClrUsed       uint32
+	ClrImportant  uint32
+}
+
+type bitmapInfo struct {
+	Header bitmapInfoHeader
+	Colors [1]uint32
+}
+
+func ListWindows() ([]WindowInfo, error) {
+	var windows []WindowInfo
+	callback := syscall.NewCallback(func(hwnd uintptr, lparam uintptr) uintptr {
+		_ = lparam
+		if !isWindowVisible(hwnd) {
+			return 1
+		}
+		title := getWindowTitle(hwnd)
+		if strings.TrimSpace(title) == "" {
+			return 1
+		}
+		windows = append(windows, WindowInfo{
+			Handle:    hwnd,
+			Title:     title,
+			ClassName: getClassName(hwnd),
+		})
+		return 1
+	})
+
+	ret, _, err := procEnumWindows.Call(callback, 0)
+	if ret == 0 {
+		return nil, err
+	}
+	return windows, nil
+}
+
+func FindWindow(cfg config.WindowConfig) (uintptr, error) {
+	windows, err := ListWindows()
+	if err != nil {
+		return 0, err
+	}
+	for _, window := range windows {
+		if cfg.ExactTitle != "" && window.Title != cfg.ExactTitle {
+			continue
+		}
+		if cfg.TitleContains != "" && !strings.Contains(window.Title, cfg.TitleContains) {
+			continue
+		}
+		if cfg.ClassName != "" && window.ClassName != cfg.ClassName {
+			continue
+		}
+		if cfg.ExactTitle == "" && cfg.TitleContains == "" && cfg.ClassName == "" {
+			continue
+		}
+		return window.Handle, nil
+	}
+	return 0, fmt.Errorf("window not found: title_contains=%q exact_title=%q class_name=%q", cfg.TitleContains, cfg.ExactTitle, cfg.ClassName)
+}
+
+func WindowTitle(hwnd uintptr) string {
+	return getWindowTitle(hwnd)
+}
+
+func CaptureClientRegion(hwnd uintptr, region config.Region) (*image.RGBA, error) {
+	var client rect
+	ret, _, err := procGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&client)))
+	if ret == 0 {
+		return nil, fmt.Errorf("GetClientRect failed: %w", err)
+	}
+
+	clientWidth := int(client.Right - client.Left)
+	clientHeight := int(client.Bottom - client.Top)
+	if region.X < 0 || region.Y < 0 || region.Width <= 0 || region.Height <= 0 {
+		return nil, fmt.Errorf("invalid region: %+v", region)
+	}
+	if region.X >= clientWidth || region.Y >= clientHeight {
+		return nil, fmt.Errorf("region starts outside client area: region=%+v client=%dx%d", region, clientWidth, clientHeight)
+	}
+	if region.X+region.Width > clientWidth {
+		region.Width = clientWidth - region.X
+	}
+	if region.Y+region.Height > clientHeight {
+		region.Height = clientHeight - region.Y
+	}
+
+	hdc, _, err := procGetDC.Call(hwnd)
+	if hdc == 0 {
+		return nil, fmt.Errorf("GetDC failed: %w", err)
+	}
+	defer procReleaseDC.Call(hwnd, hdc)
+
+	memDC, _, err := procCreateCompatibleDC.Call(hdc)
+	if memDC == 0 {
+		return nil, fmt.Errorf("CreateCompatibleDC failed: %w", err)
+	}
+	defer procDeleteDC.Call(memDC)
+
+	bitmap, _, err := procCreateCompatibleBitmap.Call(hdc, uintptr(region.Width), uintptr(region.Height))
+	if bitmap == 0 {
+		return nil, fmt.Errorf("CreateCompatibleBitmap failed: %w", err)
+	}
+	defer procDeleteObject.Call(bitmap)
+
+	oldObject, _, _ := procSelectObject.Call(memDC, bitmap)
+	if oldObject != 0 {
+		defer procSelectObject.Call(memDC, oldObject)
+	}
+
+	ret, _, err = procBitBlt.Call(
+		memDC,
+		0,
+		0,
+		uintptr(region.Width),
+		uintptr(region.Height),
+		hdc,
+		uintptr(region.X),
+		uintptr(region.Y),
+		srccopy,
+	)
+	if ret == 0 {
+		return nil, fmt.Errorf("BitBlt failed: %w", err)
+	}
+
+	bgra := make([]byte, region.Width*region.Height*4)
+	info := bitmapInfo{
+		Header: bitmapInfoHeader{
+			Size:        uint32(unsafe.Sizeof(bitmapInfoHeader{})),
+			Width:       int32(region.Width),
+			Height:      -int32(region.Height),
+			Planes:      1,
+			BitCount:    32,
+			Compression: biRGB,
+			SizeImage:   uint32(len(bgra)),
+		},
+	}
+	ret, _, err = procGetDIBits.Call(
+		memDC,
+		bitmap,
+		0,
+		uintptr(region.Height),
+		uintptr(unsafe.Pointer(&bgra[0])),
+		uintptr(unsafe.Pointer(&info)),
+		dibRGBColors,
+	)
+	if ret == 0 {
+		return nil, fmt.Errorf("GetDIBits failed: %w", err)
+	}
+
+	img := image.NewRGBA(image.Rect(0, 0, region.Width, region.Height))
+	for i := 0; i < region.Width*region.Height; i++ {
+		img.Pix[i*4+0] = bgra[i*4+2]
+		img.Pix[i*4+1] = bgra[i*4+1]
+		img.Pix[i*4+2] = bgra[i*4+0]
+		img.Pix[i*4+3] = 255
+	}
+	return img, nil
+}
+
+func isWindowVisible(hwnd uintptr) bool {
+	ret, _, _ := procIsWindowVisible.Call(hwnd)
+	return ret != 0
+}
+
+func getWindowTitle(hwnd uintptr) string {
+	length, _, _ := procGetWindowTextLenW.Call(hwnd)
+	if length == 0 {
+		return ""
+	}
+	buffer := make([]uint16, length+1)
+	procGetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(&buffer[0])), length+1)
+	return syscall.UTF16ToString(buffer)
+}
+
+func getClassName(hwnd uintptr) string {
+	buffer := make([]uint16, maxClassChars)
+	procGetClassNameW.Call(hwnd, uintptr(unsafe.Pointer(&buffer[0])), maxClassChars)
+	return syscall.UTF16ToString(buffer)
+}
+

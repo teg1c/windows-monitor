@@ -1,0 +1,16 @@
+.appdata/
+.build/
+.dotnet/
+.gocache/
+.localappdata/
+.nuget/
+.verify/
+bin/
+dist/
+release/
+obj/
+logs/
+*.user
+*.suo
+*.tmp
+config.local.json

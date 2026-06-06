@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>windows-monitor</AssemblyName>
+    <RootNamespace>MhxyNotify</RootNamespace>
+    <ApplicationIcon>Assets\windows-monitor.ico</ApplicationIcon>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <Product>&#x7075;&#x8baf;&#x54e8;</Product>
+    <Company>windows-monitor</Company>
+    <Description>&#x7a97;&#x53e3;&#x7cfb;&#x7edf;&#x6d88;&#x606f; OCR &#x76d1;&#x63a7;&#x63d0;&#x9192;&#x5de5;&#x5177;</Description>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.build\**;dist\**;.dotnet\**;.nuget\**;.appdata\**;.localappdata\**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove=".build\**\*.cs" />
+    <Compile Remove="dist\**\*.cs" />
+    <Compile Remove=".dotnet\**\*.cs" />
+    <Compile Remove=".nuget\**\*.cs" />
+    <Compile Remove=".appdata\**\*.cs" />
+    <Compile Remove=".localappdata\**\*.cs" />
+    <Compile Remove="Installer\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\windows-monitor.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AntdUI" Version="2.4.0" />
+    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+    <PackageReference Include="Sdcb.PaddleInference" Version="3.3.1" />
+    <PackageReference Include="Sdcb.PaddleInference.runtime.win64.mkl" Version="3.3.1.70" />
+    <PackageReference Include="Sdcb.PaddleOCR" Version="3.3.1" />
+    <PackageReference Include="Sdcb.PaddleOCR.Models.Local" Version="3.3.1" />
+  </ItemGroup>
+</Project>

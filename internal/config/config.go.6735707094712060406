@@ -1,0 +1,151 @@
+package config
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+)
+
+type Config struct {
+	PollInterval     time.Duration
+	StateFile        string
+	NotifyOnFirstSeen bool
+	MessageTitle     string
+	Window           WindowConfig
+	Region           Region
+	Change           ChangeConfig
+	OCR              OCRConfig
+	Notifiers        []NotifierConfig
+}
+
+type rawConfig struct {
+	PollIntervalMS   int              `json:"poll_interval_ms"`
+	StateFile        string           `json:"state_file"`
+	NotifyOnFirstSeen bool            `json:"notify_on_first_seen"`
+	MessageTitle     string           `json:"message_title"`
+	Window           WindowConfig     `json:"window"`
+	Region           Region           `json:"region"`
+	Change           ChangeConfig     `json:"change"`
+	OCR              OCRConfig        `json:"ocr"`
+	Notifiers        []NotifierConfig `json:"notifiers"`
+}
+
+type WindowConfig struct {
+	TitleContains string `json:"title_contains"`
+	ExactTitle    string `json:"exact_title"`
+	ClassName     string `json:"class_name"`
+}
+
+type Region struct {
+	X      int `json:"x"`
+	Y      int `json:"y"`
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+type ChangeConfig struct {
+	HashWidth       int    `json:"hash_width"`
+	HashHeight      int    `json:"hash_height"`
+	Threshold       int    `json:"threshold"`
+	StableSamples   int    `json:"stable_samples"`
+	CooldownSeconds int    `json:"cooldown_seconds"`
+	SaveDebugImage  bool   `json:"save_debug_image"`
+	DebugImageDir   string `json:"debug_image_dir"`
+}
+
+type OCRConfig struct {
+	Enabled      bool     `json:"enabled"`
+	Command      []string `json:"command"`
+	TimeoutMS    int      `json:"timeout_ms"`
+	MessageRegex string   `json:"message_regex"`
+}
+
+type NotifierConfig struct {
+	Type       string            `json:"type"`
+	Name       string            `json:"name"`
+	Enabled    bool              `json:"enabled"`
+	URL        string            `json:"url"`
+	Headers    map[string]string `json:"headers"`
+	SendKey    string            `json:"send_key"`
+	BaseURL    string            `json:"base_url"`
+	DeviceKey  string            `json:"device_key"`
+	BotToken   string            `json:"bot_token"`
+	ChatID     string            `json:"chat_id"`
+	Host       string            `json:"host"`
+	Port       int               `json:"port"`
+	Username   string            `json:"username"`
+	Password   string            `json:"password"`
+	From       string            `json:"from"`
+	To         []string          `json:"to"`
+	UseTLS     bool              `json:"use_tls"`
+	WebhookURL string            `json:"webhook_url"`
+}
+
+func Load(path string) (Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, err
+	}
+
+	var raw rawConfig
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return Config{}, err
+	}
+
+	if raw.PollIntervalMS <= 0 {
+		raw.PollIntervalMS = 800
+	}
+	if raw.StateFile == "" {
+		raw.StateFile = ".mhxy-notify-state.json"
+	}
+	if raw.MessageTitle == "" {
+		raw.MessageTitle = "梦幻西游系统消息"
+	}
+	if raw.Region.Width <= 0 || raw.Region.Height <= 0 {
+		return Config{}, fmt.Errorf("region width and height must be positive")
+	}
+	if raw.Change.HashWidth <= 0 {
+		raw.Change.HashWidth = 64
+	}
+	if raw.Change.HashHeight <= 0 {
+		raw.Change.HashHeight = 32
+	}
+	if raw.Change.Threshold <= 0 {
+		raw.Change.Threshold = 36
+	}
+	if raw.Change.StableSamples <= 0 {
+		raw.Change.StableSamples = 1
+	}
+	if raw.Change.CooldownSeconds < 0 {
+		raw.Change.CooldownSeconds = 0
+	}
+	if raw.Change.DebugImageDir == "" {
+		raw.Change.DebugImageDir = "debug-captures"
+	}
+	if raw.OCR.TimeoutMS <= 0 {
+		raw.OCR.TimeoutMS = 8000
+	}
+
+	baseDir := filepath.Dir(path)
+	stateFile := raw.StateFile
+	if !filepath.IsAbs(stateFile) {
+		stateFile = filepath.Join(baseDir, stateFile)
+	}
+	if !filepath.IsAbs(raw.Change.DebugImageDir) {
+		raw.Change.DebugImageDir = filepath.Join(baseDir, raw.Change.DebugImageDir)
+	}
+
+	return Config{
+		PollInterval:      time.Duration(raw.PollIntervalMS) * time.Millisecond,
+		StateFile:         stateFile,
+		NotifyOnFirstSeen: raw.NotifyOnFirstSeen,
+		MessageTitle:      raw.MessageTitle,
+		Window:            raw.Window,
+		Region:            raw.Region,
+		Change:            raw.Change,
+		OCR:               raw.OCR,
+		Notifiers:         raw.Notifiers,
+	}, nil
+}

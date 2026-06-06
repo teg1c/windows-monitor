@@ -1,0 +1,86 @@
+package ocr
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"os/exec"
+	"regexp"
+	"strings"
+	"time"
+
+	"mhxy-notify/internal/config"
+)
+
+type CommandOCR struct {
+	command      []string
+	timeout      time.Duration
+	messageRegex *regexp.Regexp
+}
+
+func NewCommandOCR(cfg config.OCRConfig) (*CommandOCR, error) {
+	if len(cfg.Command) == 0 {
+		return nil, fmt.Errorf("ocr command is empty")
+	}
+	var pattern *regexp.Regexp
+	var err error
+	if cfg.MessageRegex != "" {
+		pattern, err = regexp.Compile(cfg.MessageRegex)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &CommandOCR{
+		command:      cfg.Command,
+		timeout:      time.Duration(cfg.TimeoutMS) * time.Millisecond,
+		messageRegex: pattern,
+	}, nil
+}
+
+func (o *CommandOCR) ReadText(ctx context.Context, imagePath string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, o.timeout)
+	defer cancel()
+
+	args := make([]string, len(o.command))
+	for i, part := range o.command {
+		args[i] = strings.ReplaceAll(part, "{image}", imagePath)
+	}
+
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		if stderr.Len() > 0 {
+			return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(stderr.String()))
+		}
+		return "", err
+	}
+
+	text := strings.TrimSpace(stdout.String())
+	if o.messageRegex == nil {
+		return text, nil
+	}
+
+	lines := strings.Split(text, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line == "" {
+			continue
+		}
+		match := o.messageRegex.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+		if index := o.messageRegex.SubexpIndex("message"); index >= 0 && index < len(match) {
+			return strings.TrimSpace(match[index]), nil
+		}
+		if len(match) > 1 {
+			return strings.TrimSpace(match[1]), nil
+		}
+		return strings.TrimSpace(match[0]), nil
+	}
+	return "", nil
+}
+

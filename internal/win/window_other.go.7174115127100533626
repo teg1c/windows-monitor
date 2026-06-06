@@ -1,0 +1,36 @@
+//go:build !windows
+
+package win
+
+import (
+	"fmt"
+	"image"
+
+	"mhxy-notify/internal/config"
+)
+
+type WindowInfo struct {
+	Handle    uintptr
+	Title     string
+	ClassName string
+}
+
+func ListWindows() ([]WindowInfo, error) {
+	return nil, fmt.Errorf("window capture is only supported on Windows")
+}
+
+func FindWindow(cfg config.WindowConfig) (uintptr, error) {
+	_ = cfg
+	return 0, fmt.Errorf("window capture is only supported on Windows")
+}
+
+func WindowTitle(hwnd uintptr) string {
+	_ = hwnd
+	return ""
+}
+
+func CaptureClientRegion(hwnd uintptr, region config.Region) (*image.RGBA, error) {
+	_, _ = hwnd, region
+	return nil, fmt.Errorf("window capture is only supported on Windows")
+}
+

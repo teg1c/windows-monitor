@@ -1,0 +1,67 @@
+package monitor
+
+import (
+	"image"
+	"image/color"
+	"testing"
+
+	"mhxy-notify/internal/config"
+	"mhxy-notify/internal/state"
+)
+
+func TestDetectorBaselineThenChange(t *testing.T) {
+	detector := NewDetector(config.ChangeConfig{
+		HashWidth:     8,
+		HashHeight:    8,
+		Threshold:     1,
+		StableSamples: 1,
+	})
+	st := &state.State{}
+
+	first := solid(color.RGBA{R: 10, G: 10, B: 10, A: 255})
+	second := checker()
+
+	if result := detector.Check(first, st); !result.FirstSeen {
+		t.Fatalf("expected first image to set baseline")
+	}
+	if result := detector.Check(first, st); result.Changed {
+		t.Fatalf("same image should not change")
+	}
+	if result := detector.Check(second, st); !result.Changed {
+		t.Fatalf("different image should change")
+	}
+}
+
+func TestHashStableForSameImage(t *testing.T) {
+	img := checker()
+	left := AverageHash(img, 8, 8)
+	right := AverageHash(img, 8, 8)
+	if left != right {
+		t.Fatalf("hash changed for same image: %s != %s", left, right)
+	}
+}
+
+func solid(c color.Color) image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 16; x++ {
+			img.Set(x, y, c)
+		}
+	}
+	return img
+}
+
+func checker() image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 16; x++ {
+			if (x+y)%2 == 0 {
+				img.Set(x, y, color.White)
+			} else {
+				img.Set(x, y, color.Black)
+			}
+		}
+	}
+	return img
+}
+
