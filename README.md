@@ -4,6 +4,9 @@
 
 软件名：灵讯哨  
 英文/可执行文件名：windows-monitor  
+作者：tegic  
+联系方式：35350826  
+GitHub：[https://github.com/teg1c](https://github.com/teg1c)  
 图标资产：`Assets/windows-monitor.ico`
 
 边界说明：

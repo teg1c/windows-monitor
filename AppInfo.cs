@@ -4,6 +4,9 @@ public static class AppInfo
 {
     public const string EnglishName = "windows-monitor";
     public const string DisplayName = "\u7075\u8baf\u54e8";
+    public const string Author = "tegic";
+    public const string Contact = "35350826";
+    public const string AuthorGitHub = "https://github.com/teg1c";
     public const string NotificationTitle = "\u7075\u8baf\u54e8\u63d0\u9192";
     public const string MutexName = @"Local\windows-monitor.SingleInstance";
     public const string RepositoryOwner = "teg1c";
@@ -12,6 +15,7 @@ public static class AppInfo
 
     public static string Version => typeof(AppInfo).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
     public static string FullTitle => $"\u7075\u8baf\u54e8 - \u7cfb\u7edf\u6d88\u606f\u76d1\u63a7 v{Version}";
+    public static string AboutText => $"{EnglishName} v{Version}  |  \u4f5c\u8005\uff1a{Author}  |  QQ\uff1a{Contact}";
 
     public static Icon LoadApplicationIcon()
     {

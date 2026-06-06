@@ -20,6 +20,7 @@ import (
 const (
 	appName       = "windows-monitor"
 	displayName   = "灵讯哨"
+	author        = "tegic"
 	releaseAPIURL = "https://api.github.com/repos/teg1c/windows-monitor/releases/latest"
 )
 
@@ -309,7 +310,7 @@ func writeUninstallEntry(installDir string) error {
 		{"add", key, "/f"},
 		{"add", key, "/v", "DisplayName", "/d", displayName, "/f"},
 		{"add", key, "/v", "DisplayVersion", "/d", version, "/f"},
-		{"add", key, "/v", "Publisher", "/d", appName, "/f"},
+		{"add", key, "/v", "Publisher", "/d", author, "/f"},
 		{"add", key, "/v", "InstallLocation", "/d", installDir, "/f"},
 		{"add", key, "/v", "DisplayIcon", "/d", appExe, "/f"},
 		{"add", key, "/v", "UninstallString", "/d", fmt.Sprintf(`"%s" --uninstall`, setupExe), "/f"},

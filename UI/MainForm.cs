@@ -156,15 +156,36 @@ public sealed class MainForm : Form
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
 
+        var titleBox = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+            BackColor = Color.Transparent
+        };
+        titleBox.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
+        titleBox.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
+
         var title = new Label
         {
             Text = AppInfo.FullTitle,
             Dock = DockStyle.Fill,
             ForeColor = Color.White,
             Font = new Font(Font.FontFamily, 15F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft
+            TextAlign = ContentAlignment.BottomLeft
         };
-        header.Controls.Add(title, 0, 0);
+        titleBox.Controls.Add(title, 0, 0);
+
+        var about = new Label
+        {
+            Text = AppInfo.AboutText,
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(178, 190, 204),
+            Font = new Font(Font.FontFamily, 8F, FontStyle.Regular),
+            TextAlign = ContentAlignment.TopLeft
+        };
+        titleBox.Controls.Add(about, 0, 1);
+        header.Controls.Add(titleBox, 0, 0);
 
         _statePill.Text = "\u5c31\u7eea";
         _statePill.Dock = DockStyle.Fill;

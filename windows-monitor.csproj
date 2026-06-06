@@ -10,7 +10,8 @@
     <ApplicationIcon>Assets\windows-monitor.ico</ApplicationIcon>
     <VersionPrefix>1.0.0</VersionPrefix>
     <Product>&#x7075;&#x8baf;&#x54e8;</Product>
-    <Company>windows-monitor</Company>
+    <Company>tegic</Company>
+    <Authors>tegic</Authors>
     <Description>&#x7a97;&#x53e3;&#x7cfb;&#x7edf;&#x6d88;&#x606f; OCR &#x76d1;&#x63a7;&#x63d0;&#x9192;&#x5de5;&#x5177;</Description>
     <DefaultItemExcludes>$(DefaultItemExcludes);.build\**;dist\**;.dotnet\**;.nuget\**;.appdata\**;.localappdata\**</DefaultItemExcludes>
   </PropertyGroup>
