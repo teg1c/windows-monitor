@@ -26,7 +26,9 @@ public sealed class AppConfig
     public string OcrCommand { get; set; } = "tesseract";
     public string OcrArguments { get; set; } = "\"{image}\" stdout -l chi_sim+eng --psm 6";
     public double MinConfidence { get; set; } = 0.45;
+    public int MaxOcrPixels { get; set; } = 800_000;
     public bool FullWindowKeywordEnabled { get; set; }
+    public string KeywordDetectionMode { get; set; } = "ocr";
     public int KeywordOcrIntervalMs { get; set; } = 2000;
     public string WatchKeywords { get; set; } = "\u7f51\u7edc\u9519\u8bef\r\n\u8bf7\u91cd\u65b0\u767b\u5f55\r\n\u7f51\u7edc\u6709\u95ee\u9898";
     public int MaxLogLines { get; set; } = 1000;

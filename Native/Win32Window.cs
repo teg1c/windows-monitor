@@ -15,6 +15,8 @@ public sealed record WindowInfo(IntPtr Handle, string Title, string ClassName, R
     }
 }
 
+public sealed record DialogInfo(IntPtr Handle, string Title, string Text, string ClassName, int ProcessId);
+
 public static class Win32Window
 {
     private const int Srccopy = 0x00CC0020;
@@ -68,6 +70,54 @@ public static class Win32Window
     public static Bitmap Capture(WindowInfo window)
     {
         return window.IsDesktopSource ? CaptureDesktop(GetDesktopBounds(window)) : CaptureClient(window.Handle);
+    }
+
+    public static DialogInfo? FindVisibleDialogByKeywords(WindowInfo? source, IReadOnlyList<string> keywords)
+    {
+        if (keywords.Count == 0)
+        {
+            return null;
+        }
+
+        var sourceProcessId = source is { IsDesktopSource: false } ? GetWindowProcessId(source.Handle) : 0;
+        DialogInfo? match = null;
+        EnumWindows((hwnd, _) =>
+        {
+            if (!IsWindowVisible(hwnd))
+            {
+                return true;
+            }
+
+            var className = GetWindowClassName(hwnd);
+            var title = GetWindowTitle(hwnd);
+            var text = GetChildWindowText(hwnd);
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(text))
+            {
+                return true;
+            }
+
+            var processId = GetWindowProcessId(hwnd);
+            if (processId == Environment.ProcessId)
+            {
+                return true;
+            }
+
+            if (sourceProcessId != 0 && processId != sourceProcessId)
+            {
+                return true;
+            }
+
+            var combined = $"{title}\n{text}";
+            if (!ContainsAnyKeyword(combined, keywords))
+            {
+                return true;
+            }
+
+            match = new DialogInfo(hwnd, title, text, className, processId);
+            return false;
+        }, IntPtr.Zero);
+
+        return match;
     }
 
     public static Bitmap CaptureClient(IntPtr hwnd)
@@ -202,10 +252,52 @@ public static class Win32Window
         return new string(buffer).TrimEnd('\0');
     }
 
+    private static string GetChildWindowText(IntPtr hwnd)
+    {
+        var parts = new List<string>();
+        EnumChildWindows(hwnd, (child, _) =>
+        {
+            var text = GetWindowTitle(child);
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                parts.Add(text);
+            }
+
+            return true;
+        }, IntPtr.Zero);
+        return string.Join(Environment.NewLine, parts.Distinct(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static int GetWindowProcessId(IntPtr hwnd)
+    {
+        GetWindowThreadProcessId(hwnd, out var processId);
+        return (int)processId;
+    }
+
+    private static bool ContainsAnyKeyword(string text, IReadOnlyList<string> keywords)
+    {
+        foreach (var keyword in keywords)
+        {
+            if (!string.IsNullOrWhiteSpace(keyword) &&
+                text.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(IntPtr hwndParent, EnumWindowsProc enumProc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
 
     [DllImport("user32.dll")]
     private static extern bool IsWindowVisible(IntPtr hwnd);

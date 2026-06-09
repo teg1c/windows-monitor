@@ -30,6 +30,7 @@ public sealed class MainForm : Form
     private readonly Button _previewButton = new();
     private readonly Button _monitorButton = new();
     private readonly PreviewCanvas _preview = new();
+    private readonly ComboBox _keywordDetectionMode = new();
     private readonly NumericUpDown _intervalInput = new();
     private readonly NumericUpDown _cooldownInput = new();
 
@@ -39,6 +40,7 @@ public sealed class MainForm : Form
     private readonly TextBox _ocrCommand = new();
     private readonly TextBox _ocrArguments = new();
     private readonly NumericUpDown _minConfidenceInput = new();
+    private readonly NumericUpDown _maxOcrPixelsInput = new();
     private readonly TextBox _ocrText = new();
     private readonly NumericUpDown _keywordOcrIntervalInput = new();
     private readonly TextBox _watchKeywords = new();
@@ -68,6 +70,9 @@ public sealed class MainForm : Form
     private readonly Button _clearLogButton = new();
     private readonly System.Windows.Forms.Panel _pageHost = new();
     private readonly List<Control> _settingPages = [];
+    private readonly List<Control> _sourceSelectionControls = [];
+    private readonly List<Control> _regionSelectionControls = [];
+    private readonly List<Control> _ocrSourceControls = [];
     private readonly Button _navMonitorButton = new();
     private readonly Button _navOcrButton = new();
     private readonly Button _navWebhookButton = new();
@@ -77,6 +82,7 @@ public sealed class MainForm : Form
     private bool _monitoring;
     private bool _polling;
     private bool _allowClose;
+    private bool _closing;
     private bool _loadingConfig;
     private bool _updatingWebhookChannels;
     private WindowInfo? _selectedWindow;
@@ -288,9 +294,11 @@ public sealed class MainForm : Form
         var panel = CreateFormPanel();
         page.Controls.Add(panel);
 
-        AddSection(panel, "\u7a97\u53e3");
+        var windowSection = AddSection(panel, "\u7a97\u53e3");
+        _sourceSelectionControls.Add(windowSection);
         _windowList.DropDownStyle = ComboBoxStyle.DropDownList;
         AddFull(panel, _windowList);
+        _sourceSelectionControls.Add(_windowList);
 
         var buttonRow = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
         _refreshButton.Text = "\u5237\u65b0\u7a97\u53e3";
@@ -303,10 +311,23 @@ public sealed class MainForm : Form
         StyleButton(_previewButton, Color.FromArgb(235, 239, 244), Color.FromArgb(38, 48, 60));
         buttonRow.Controls.Add(_previewButton);
         AddFull(panel, buttonRow);
+        _sourceSelectionControls.Add(buttonRow);
 
         AddSection(panel, "\u5173\u952e\u8bcd\u76d1\u63a7");
-        AddNumber(panel, "\u9884\u89c8\u95f4\u9694\u6beb\u79d2", _intervalInput, 100, 5000);
-        AddNumber(panel, "OCR \u95f4\u9694\u6beb\u79d2", _keywordOcrIntervalInput, 500, 30000);
+        _keywordDetectionMode.DropDownStyle = ComboBoxStyle.DropDownList;
+        _keywordDetectionMode.Items.Clear();
+        _keywordDetectionMode.Items.AddRange(["OCR \u56fe\u50cf\u8bc6\u522b", "\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c"]);
+        _keywordDetectionMode.SelectedIndexChanged += (_, _) =>
+        {
+            UpdateDetectionModeVisibility();
+            SaveConfigFromUi();
+        };
+        AddLabeled(panel, "识别方式", _keywordDetectionMode);
+
+        var previewIntervalLabel = AddNumber(panel, "\u9884\u89c8\u95f4\u9694\u6beb\u79d2", _intervalInput, 100, 5000);
+        _ocrSourceControls.Add(previewIntervalLabel);
+        _ocrSourceControls.Add(_intervalInput);
+        AddNumber(panel, "识别间隔毫秒", _keywordOcrIntervalInput, 500, 30000);
         AddNumber(panel, "\u51b7\u5374\u79d2\u6570", _cooldownInput, 0, 3600);
 
         _watchKeywords.Multiline = true;
@@ -323,11 +344,13 @@ public sealed class MainForm : Form
         };
         AddFull(panel, keywordHint);
 
-        AddSection(panel, "\u76d1\u63a7\u533a\u57df");
+        var regionSection = AddSection(panel, "\u76d1\u63a7\u533a\u57df");
+        _regionSelectionControls.Add(regionSection);
         _regionLabel.AutoSize = true;
         _regionLabel.ForeColor = MutedText;
         _regionLabel.Text = "\u672a\u6846\u9009\uff0c\u5c06\u76d1\u63a7\u6240\u9009\u6765\u6e90\u7684\u5168\u90e8\u753b\u9762";
         AddFull(panel, _regionLabel);
+        _regionSelectionControls.Add(_regionLabel);
         var regionHint = new Label
         {
             AutoSize = true,
@@ -335,6 +358,7 @@ public sealed class MainForm : Form
             Text = "\u5148\u9009\u62e9\u6765\u6e90\uff1a\u53ef\u4ee5\u662f\u7a97\u53e3\u3001\u6574\u4e2a\u684c\u9762\u6216\u67d0\u4e2a\u663e\u793a\u5668\u3002\u53f3\u4fa7\u9884\u89c8\u53ef\u9009\u62e9\u6027\u6846\u9009\uff1b\u4e0d\u6846\u9009\u5c31 OCR \u6574\u4e2a\u6240\u9009\u6765\u6e90\u3002"
         };
         AddFull(panel, regionHint);
+        _regionSelectionControls.Add(regionHint);
 
         return page;
     }
@@ -396,6 +420,7 @@ public sealed class MainForm : Form
         AddLabeled(panel, "\u547d\u4ee4\u53c2\u6570", _ocrArguments);
 
         AddNumber(panel, "\u6700\u4f4e\u7f6e\u4fe1", _minConfidenceInput, 0, 100);
+        AddNumber(panel, "OCR \u6700\u5927\u50cf\u7d20\uff08\u4e07\uff09", _maxOcrPixelsInput, 20, 500);
 
         AddSection(panel, "\u6700\u8fd1 OCR \u7ed3\u679c");
         _ocrText.Multiline = true;
@@ -562,6 +587,7 @@ public sealed class MainForm : Form
         _loadingConfig = true;
         _intervalInput.Value = Math.Clamp(_config.PollIntervalMs, 100, 5000);
         _cooldownInput.Value = Math.Clamp(_config.CooldownSeconds, 0, 3600);
+        _keywordDetectionMode.SelectedItem = ResolveKeywordDetectionModeLabel(_config.KeywordDetectionMode);
 
         _ocrEnabled.Checked = _config.OcrEnabled;
         _ocrMode.SelectedItem = ResolveOcrMode(_config.OcrMode);
@@ -569,6 +595,8 @@ public sealed class MainForm : Form
         _ocrCommand.Text = _config.OcrCommand;
         _ocrArguments.Text = _config.OcrArguments;
         _minConfidenceInput.Value = (decimal)Math.Clamp(_config.MinConfidence * 100, 0, 100);
+        var maxOcrPixels = _config.MaxOcrPixels == 2_000_000 ? 800_000 : _config.MaxOcrPixels;
+        _maxOcrPixelsInput.Value = Math.Clamp(maxOcrPixels / 10_000, 20, 500);
         _keywordOcrIntervalInput.Value = Math.Clamp(_config.KeywordOcrIntervalMs, 500, 30000);
         _watchKeywords.Text = _config.WatchKeywords;
 
@@ -583,6 +611,7 @@ public sealed class MainForm : Form
         _loadingConfig = false;
         UpdateRegionLabel();
         UpdateOcrModeVisibility();
+        UpdateDetectionModeVisibility();
         ResetOcrResultViews();
     }
 
@@ -626,7 +655,8 @@ public sealed class MainForm : Form
             return;
         }
 
-        if (!TrySelectWindow())
+        var ocrKeywordMode = IsOcrKeywordDetectionMode();
+        if (ocrKeywordMode && !TrySelectWindow())
         {
             return;
         }
@@ -654,17 +684,18 @@ public sealed class MainForm : Form
             return;
         }
 
-        if (!TrySelectWindow())
+        var ocrKeywordMode = IsOcrKeywordDetectionMode();
+        if (ocrKeywordMode && !TrySelectWindow())
         {
             return;
         }
 
-        if (!ValidateOcrSettingsForMonitor())
+        if (ocrKeywordMode && !ValidateOcrSettingsForMonitor())
         {
             return;
         }
 
-        if (!_ocrEnabled.Checked)
+        if (ocrKeywordMode && !_ocrEnabled.Checked)
         {
             MessageBox.Show(this, "\u5173\u952e\u8bcd\u76d1\u63a7\u9700\u8981\u5f00\u542f OCR\u3002", "\u9700\u8981 OCR", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
@@ -678,7 +709,12 @@ public sealed class MainForm : Form
 
         SaveConfigFromUi();
         _monitoring = true;
-        _previewing = true;
+        _previewing = ocrKeywordMode;
+        if (!ocrKeywordMode)
+        {
+            _preview.Image = null;
+        }
+
         _lastKeywordHit = "";
         _lastKeywordSignature = "";
         _unchangedKeywordNotifyCount = 0;
@@ -687,14 +723,28 @@ public sealed class MainForm : Form
         ResetOcrResultViews();
         ApplyTimerInterval();
         _timer.Start();
-        SetStatus($"\u5173\u952e\u8bcd\u76d1\u63a7\u5df2\u542f\u52a8\uff1a{GetSelectedSourceTitle()}\uff1b{GetSelectionModeText()}");
+        SetStatus(ocrKeywordMode
+            ? $"\u5173\u952e\u8bcd OCR \u76d1\u63a7\u5df2\u542f\u52a8\uff1a{GetSelectedSourceTitle()}\uff1b{GetSelectionModeText()}"
+            : "\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u76d1\u63a7\u5df2\u542f\u52a8\uff1a\u5168\u5c40\u5916\u90e8\u7a97\u53e3");
         UpdateActionButtons();
+        if (!ocrKeywordMode)
+        {
+            SetStatus("\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u76d1\u63a7\u5df2\u542f\u52a8\uff1a\u5168\u5c40\u5916\u90e8\u7a97\u53e3");
+        }
+
         await Task.CompletedTask;
     }
 
     private async void TimerOnTick(object? sender, EventArgs e)
     {
-        if (_selectedWindow is null || _polling)
+        if (_closing || _polling || (IsOcrKeywordDetectionMode() && _selectedWindow is null))
+        {
+            return;
+        }
+
+        var needsPreview = ShouldRenderPreviewFrame() && IsOcrKeywordDetectionMode();
+        var needsKeywordCheck = _monitoring && ShouldRunKeywordCheck();
+        if (!needsPreview && !needsKeywordCheck)
         {
             return;
         }
@@ -702,22 +752,47 @@ public sealed class MainForm : Form
         _polling = true;
         try
         {
-            using var capture = Win32Window.Capture(_selectedWindow);
-            _preview.Image = (Bitmap)capture.Clone();
+            if (needsKeywordCheck && IsWindowTextKeywordDetectionMode())
+            {
+                if (!await TryNotifyDialogKeywordAsync())
+                {
+                    SetStatus("\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u76d1\u63a7\u4e2d\uff0c\u672a\u547d\u4e2d");
+                }
 
-            if (!_monitoring)
+                if (!needsPreview)
+                {
+                    return;
+                }
+            }
+
+            var needsOcr = needsKeywordCheck && IsOcrKeywordDetectionMode();
+            if (!needsPreview && !needsOcr)
             {
                 return;
             }
 
-            if (ShouldRunKeywordOcr())
+            var captureWindow = _selectedWindow;
+            if (captureWindow is null)
             {
-                await TryNotifyKeywordAsync(capture);
+                return;
             }
-            else
+
+            using var capture = Win32Window.Capture(captureWindow);
+            if (needsPreview)
             {
-                SetStatus($"\u5173\u952e\u8bcd\u76d1\u63a7\u4e2d\uff1a{GetSelectedSourceTitle()}\uff1b{GetSelectionModeText()}");
+                _preview.Image = (Bitmap)capture.Clone();
             }
+            else if (WindowState == FormWindowState.Minimized && _preview.Image is not null)
+            {
+                _preview.Image = null;
+            }
+
+            if (!needsOcr)
+            {
+                return;
+            }
+
+            await TryNotifyKeywordAsync(capture);
         }
         catch (Exception ex)
         {
@@ -728,6 +803,15 @@ public sealed class MainForm : Form
         {
             _polling = false;
         }
+    }
+
+    private bool ShouldRenderPreviewFrame()
+    {
+        return _previewing &&
+               WindowState != FormWindowState.Minimized &&
+               _preview.Visible &&
+               _preview.Width > 0 &&
+               _preview.Height > 0;
     }
 
     private Task<OcrReadResult> ReadOcrAsync(Bitmap crop)
@@ -743,6 +827,82 @@ public sealed class MainForm : Form
         }
 
         return _wxOcrService.ReadLatestMessageAsync(crop, _ocrUrl.Text.Trim(), (double)_minConfidenceInput.Value / 100d);
+    }
+
+    private async Task<bool> TryNotifyDialogKeywordAsync()
+    {
+        var source = IsOcrKeywordDetectionMode() ? _selectedWindow : null;
+        if (IsOcrKeywordDetectionMode() && source is null)
+        {
+            return false;
+        }
+
+        var keywords = GetWatchKeywords();
+        if (keywords.Count == 0)
+        {
+            return false;
+        }
+
+        _lastKeywordOcrAt = DateTimeOffset.Now;
+        var dialog = Win32Window.FindVisibleDialogByKeywords(source, keywords);
+        if (dialog is null)
+        {
+            SetStatus("\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u76d1\u63a7\u4e2d\uff0c\u672a\u547d\u4e2d");
+            return true;
+        }
+
+        var dialogText = string.Join(
+            Environment.NewLine,
+            new[] { dialog.Title, dialog.Text }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        var hit = FindKeywordHit(dialogText, keywords);
+        if (hit is null)
+        {
+            return false;
+        }
+
+        var normalizedHit = OcrTextParser.NormalizeText(hit);
+        var signature = "dialog|" + OcrTextParser.NormalizeText(dialogText);
+        var unchangedHit = string.Equals(signature, _lastKeywordSignature, StringComparison.OrdinalIgnoreCase);
+        if (unchangedHit && _unchangedKeywordNotifyCount >= MaxUnchangedKeywordNotifications)
+        {
+            _keywordLastHitText.Text = $"来源：窗口弹窗{Environment.NewLine}命中：{hit}{Environment.NewLine}未发送：弹窗未变化，已达到 {MaxUnchangedKeywordNotifications} 次提醒上限{Environment.NewLine}{dialogText}";
+            SetStatus($"命中弹窗关键词“{hit}”，弹窗未变化，已达到 {MaxUnchangedKeywordNotifications} 次提醒上限");
+            return true;
+        }
+
+        var cooldown = TimeSpan.FromSeconds(Math.Max(0, (int)_cooldownInput.Value));
+        if (normalizedHit == _lastKeywordHit && cooldown > TimeSpan.Zero && DateTimeOffset.Now - _lastKeywordNotifyAt < cooldown)
+        {
+            SetStatus($"命中弹窗关键词“{hit}”，冷却中");
+            return true;
+        }
+
+        _lastKeywordHit = normalizedHit;
+        _lastKeywordSignature = signature;
+        _lastKeywordNotifyAt = DateTimeOffset.Now;
+        _ocrText.Text = dialogText;
+        _keywordLastHitText.Text = $"来源：窗口弹窗{Environment.NewLine}进程：{dialog.ProcessId}{Environment.NewLine}窗口：{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}命中：{hit}{Environment.NewLine}{dialogText}";
+        var body = $"检测到窗口弹窗命中关键词：{hit}{Environment.NewLine}窗口：{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}{dialogText}";
+        SetStatus($"命中弹窗关键词：{hit}");
+        SaveConfigFromUi();
+
+        try
+        {
+            await _notificationService.NotifyAsync(
+                AppInfo.NotificationTitle,
+                body,
+                _config,
+                new NotificationEvent(dialog.Title, 0, Rectangle.Empty, dialogText));
+            _unchangedKeywordNotifyCount = unchangedHit ? _unchangedKeywordNotifyCount + 1 : 1;
+            LogInfo($"弹窗关键词已提醒：{hit}；当前未变化连续提醒 {_unchangedKeywordNotifyCount}/{MaxUnchangedKeywordNotifications}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogError("弹窗关键词通知发送失败", ex);
+            SetStatus($"弹窗关键词通知失败：{ex.Message}");
+            return true;
+        }
     }
 
     private bool ValidateOcrSettingsForMonitor()
@@ -776,9 +936,14 @@ public sealed class MainForm : Form
         };
     }
 
-    private bool ShouldRunKeywordOcr()
+    private bool ShouldRunKeywordCheck()
     {
-        if (!_ocrEnabled.Checked || GetWatchKeywords().Count == 0)
+        if (GetWatchKeywords().Count == 0)
+        {
+            return false;
+        }
+
+        if (IsOcrKeywordDetectionMode() && !_ocrEnabled.Checked)
         {
             return false;
         }
@@ -796,7 +961,8 @@ public sealed class MainForm : Form
         try
         {
             using var ocrBitmap = CaptureMonitorRegion(capture, region);
-            ocrResult = await ReadOcrAsync(ocrBitmap);
+            using var preparedBitmap = PrepareBitmapForOcr(ocrBitmap);
+            ocrResult = await ReadOcrAsync(preparedBitmap);
         }
         catch (Exception ex)
         {
@@ -896,6 +1062,31 @@ public sealed class MainForm : Form
         }
 
         return capture.Clone(region, capture.PixelFormat);
+    }
+
+    private Bitmap PrepareBitmapForOcr(Bitmap bitmap)
+    {
+        var maxPixels = Math.Max(200_000, (int)_maxOcrPixelsInput.Value * 10_000);
+        var pixels = (long)bitmap.Width * bitmap.Height;
+        if (pixels <= maxPixels)
+        {
+            return CloneAs24Bpp(bitmap, bitmap.Width, bitmap.Height);
+        }
+
+        var scale = Math.Sqrt((double)maxPixels / pixels);
+        var width = Math.Max(1, (int)Math.Round(bitmap.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(bitmap.Height * scale));
+        return CloneAs24Bpp(bitmap, width, height);
+    }
+
+    private static Bitmap CloneAs24Bpp(Bitmap source, int width, int height)
+    {
+        var target = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+        using var graphics = Graphics.FromImage(target);
+        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+        graphics.DrawImage(source, new Rectangle(0, 0, width, height));
+        return target;
     }
 
     private string GetSelectionModeText()
@@ -1199,6 +1390,7 @@ public sealed class MainForm : Form
         _config.PollIntervalMs = (int)_intervalInput.Value;
         _config.CooldownSeconds = (int)_cooldownInput.Value;
         _config.MonitorMode = "keyword";
+        _config.KeywordDetectionMode = GetKeywordDetectionModeValue();
 
         _config.OcrEnabled = _ocrEnabled.Checked;
         _config.OcrMode = _ocrMode.SelectedItem?.ToString() ?? "local";
@@ -1206,6 +1398,7 @@ public sealed class MainForm : Form
         _config.OcrCommand = _ocrCommand.Text.Trim();
         _config.OcrArguments = _ocrArguments.Text.Trim();
         _config.MinConfidence = (double)_minConfidenceInput.Value / 100d;
+        _config.MaxOcrPixels = (int)_maxOcrPixelsInput.Value * 10_000;
         _config.FullWindowKeywordEnabled = true;
         _config.KeywordOcrIntervalMs = (int)_keywordOcrIntervalInput.Value;
         _config.WatchKeywords = _watchKeywords.Text.Trim();
@@ -1339,12 +1532,59 @@ public sealed class MainForm : Form
 
     private void UpdateOcrModeVisibility()
     {
+        var keywordOcr = IsOcrKeywordDetectionMode();
         var commandMode = string.Equals(_ocrMode.SelectedItem?.ToString(), "command", StringComparison.OrdinalIgnoreCase);
         var wxMode = string.Equals(_ocrMode.SelectedItem?.ToString(), "wxocr", StringComparison.OrdinalIgnoreCase);
-        _ocrUrl.Enabled = wxMode;
-        _minConfidenceInput.Enabled = wxMode;
-        _ocrCommand.Enabled = commandMode;
-        _ocrArguments.Enabled = commandMode;
+        _ocrUrl.Enabled = keywordOcr && wxMode;
+        _minConfidenceInput.Enabled = keywordOcr && wxMode;
+        _ocrCommand.Enabled = keywordOcr && commandMode;
+        _ocrArguments.Enabled = keywordOcr && commandMode;
+        _maxOcrPixelsInput.Enabled = keywordOcr;
+    }
+
+    private void UpdateDetectionModeVisibility()
+    {
+        var ocrMode = IsOcrKeywordDetectionMode();
+        foreach (var control in _sourceSelectionControls.Concat(_regionSelectionControls).Concat(_ocrSourceControls))
+        {
+            control.Visible = ocrMode;
+        }
+
+        if (!ocrMode)
+        {
+            _previewing = false;
+            _preview.Image = null;
+        }
+
+        _navOcrButton.Enabled = ocrMode;
+        _ocrEnabled.Enabled = ocrMode;
+        _ocrMode.Enabled = ocrMode;
+        _ocrText.PlaceholderText = ocrMode
+            ? "\u6700\u8fd1\u4e00\u6b21 OCR \u6587\u672c\u4f1a\u663e\u793a\u5728\u8fd9\u91cc"
+            : "外部窗口/弹窗文本命中后会显示在这里";
+        UpdateOcrModeVisibility();
+    }
+
+    private bool IsOcrKeywordDetectionMode()
+    {
+        return !IsWindowTextKeywordDetectionMode();
+    }
+
+    private bool IsWindowTextKeywordDetectionMode()
+    {
+        return string.Equals(GetKeywordDetectionModeValue(), "windowText", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetKeywordDetectionModeValue()
+    {
+        return _keywordDetectionMode.SelectedIndex == 1 ? "windowText" : "ocr";
+    }
+
+    private static string ResolveKeywordDetectionModeLabel(string mode)
+    {
+        return string.Equals(mode, "windowText", StringComparison.OrdinalIgnoreCase)
+            ? "外部窗口/弹窗文本"
+            : "OCR 图像识别";
     }
 
     private void ResetOcrResultViews()
@@ -1356,7 +1596,9 @@ public sealed class MainForm : Form
 
         _ocrText.Clear();
         _keywordLastHitText.Clear();
-        _ocrText.PlaceholderText = "\u6700\u8fd1\u4e00\u6b21 OCR \u6587\u672c\u4f1a\u663e\u793a\u5728\u8fd9\u91cc";
+        _ocrText.PlaceholderText = IsOcrKeywordDetectionMode()
+            ? "\u6700\u8fd1\u4e00\u6b21 OCR \u6587\u672c\u4f1a\u663e\u793a\u5728\u8fd9\u91cc"
+            : "外部窗口/弹窗文本命中后会显示在这里";
         _keywordLastHitText.PlaceholderText = "\u5173\u952e\u8bcd\u547d\u4e2d\u548c\u76d1\u63a7\u533a\u57df\u4f1a\u663e\u793a\u5728\u8fd9\u91cc";
     }
 
@@ -1403,7 +1645,7 @@ public sealed class MainForm : Form
         return panel;
     }
 
-    private static void AddSection(TableLayoutPanel panel, string text)
+    private static Label AddSection(TableLayoutPanel panel, string text)
     {
         var label = new Label
         {
@@ -1416,6 +1658,7 @@ public sealed class MainForm : Form
         panel.Controls.Add(label, 0, panel.RowCount);
         panel.SetColumnSpan(label, 2);
         panel.RowCount++;
+        return label;
     }
 
     private static void AddFull(TableLayoutPanel panel, Control control)
@@ -1432,8 +1675,14 @@ public sealed class MainForm : Form
         panel.RowCount++;
     }
 
-    private static void AddLabeled(TableLayoutPanel panel, string labelText, Control control)
+    private static Label AddLabeled(TableLayoutPanel panel, string labelText, Control control)
     {
+        if (control is ComboBox comboBox &&
+            comboBox.Items.Cast<object>().Any(item => string.Equals(item.ToString(), "OCR \u56fe\u50cf\u8bc6\u522b", StringComparison.Ordinal)))
+        {
+            labelText = "\u8bc6\u522b\u65b9\u5f0f";
+        }
+
         var label = new Label
         {
             Text = labelText,
@@ -1448,13 +1697,19 @@ public sealed class MainForm : Form
         panel.Controls.Add(label, 0, panel.RowCount);
         panel.Controls.Add(control, 1, panel.RowCount);
         panel.RowCount++;
+        return label;
     }
 
-    private static void AddNumber(TableLayoutPanel panel, string labelText, NumericUpDown input, int min, int max)
+    private static Label AddNumber(TableLayoutPanel panel, string labelText, NumericUpDown input, int min, int max)
     {
         input.Minimum = min;
         input.Maximum = max;
-        AddLabeled(panel, labelText, input);
+        if (min == 500 && max == 30000)
+        {
+            labelText = "\u8bc6\u522b\u95f4\u9694\u6beb\u79d2";
+        }
+
+        return AddLabeled(panel, labelText, input);
     }
 
     private static void StyleButton(Button button, Color backColor, Color foreColor)
@@ -1531,11 +1786,25 @@ public sealed class MainForm : Form
             _allowClose = true;
         }
 
+        _closing = true;
+        _monitoring = false;
+        _previewing = false;
+        _timer.Stop();
+        _preview.Image = null;
         SaveConfigFromUi();
         _wxOcrService.Dispose();
         _localOcrService.Dispose();
         _updateService.Dispose();
         _notificationService.Dispose();
         base.OnFormClosing(e);
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (WindowState == FormWindowState.Minimized)
+        {
+            _preview.Image = null;
+        }
     }
 }
