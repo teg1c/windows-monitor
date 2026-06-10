@@ -865,15 +865,15 @@ public sealed class MainForm : Form
         var unchangedHit = string.Equals(signature, _lastKeywordSignature, StringComparison.OrdinalIgnoreCase);
         if (unchangedHit && _unchangedKeywordNotifyCount >= MaxUnchangedKeywordNotifications)
         {
-            _keywordLastHitText.Text = $"来源：窗口弹窗{Environment.NewLine}命中：{hit}{Environment.NewLine}未发送：弹窗未变化，已达到 {MaxUnchangedKeywordNotifications} 次提醒上限{Environment.NewLine}{dialogText}";
-            SetStatus($"命中弹窗关键词“{hit}”，弹窗未变化，已达到 {MaxUnchangedKeywordNotifications} 次提醒上限");
+            _keywordLastHitText.Text = $"\u6765\u6e90\uff1a\u7a97\u53e3\u5f39\u7a97{Environment.NewLine}\u547d\u4e2d\uff1a{hit}{Environment.NewLine}\u672a\u53d1\u9001\uff1a\u5f39\u7a97\u672a\u53d8\u5316\uff0c\u5df2\u8fbe\u5230 {MaxUnchangedKeywordNotifications} \u6b21\u63d0\u9192\u4e0a\u9650{Environment.NewLine}{dialogText}";
+            SetStatus($"\u547d\u4e2d\u5f39\u7a97\u5173\u952e\u8bcd\u201c{hit}\u201d\uff0c\u5f39\u7a97\u672a\u53d8\u5316\uff0c\u5df2\u8fbe\u5230 {MaxUnchangedKeywordNotifications} \u6b21\u63d0\u9192\u4e0a\u9650");
             return true;
         }
 
         var cooldown = TimeSpan.FromSeconds(Math.Max(0, (int)_cooldownInput.Value));
         if (normalizedHit == _lastKeywordHit && cooldown > TimeSpan.Zero && DateTimeOffset.Now - _lastKeywordNotifyAt < cooldown)
         {
-            SetStatus($"命中弹窗关键词“{hit}”，冷却中");
+            SetStatus($"\u547d\u4e2d\u5f39\u7a97\u5173\u952e\u8bcd\u201c{hit}\u201d\uff0c\u51b7\u5374\u4e2d");
             return true;
         }
 
@@ -881,26 +881,33 @@ public sealed class MainForm : Form
         _lastKeywordSignature = signature;
         _lastKeywordNotifyAt = DateTimeOffset.Now;
         _ocrText.Text = dialogText;
-        _keywordLastHitText.Text = $"来源：窗口弹窗{Environment.NewLine}进程：{dialog.ProcessId}{Environment.NewLine}窗口：{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}命中：{hit}{Environment.NewLine}{dialogText}";
-        var body = $"检测到窗口弹窗命中关键词：{hit}{Environment.NewLine}窗口：{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}{dialogText}";
-        SetStatus($"命中弹窗关键词：{hit}");
+        _keywordLastHitText.Text = $"\u6765\u6e90\uff1a\u7a97\u53e3\u5f39\u7a97{Environment.NewLine}\u8fdb\u7a0b\uff1a{dialog.ProcessId}{Environment.NewLine}\u7a97\u53e3\uff1a{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}\u547d\u4e2d\uff1a{hit}{Environment.NewLine}{dialogText}";
+        var body = $"\u68c0\u6d4b\u5230\u7a97\u53e3\u5f39\u7a97\u547d\u4e2d\u5173\u952e\u8bcd\uff1a{hit}{Environment.NewLine}\u7a97\u53e3\uff1a{dialog.Title} [{dialog.ClassName}]{Environment.NewLine}{dialogText}";
+        SetStatus($"\u547d\u4e2d\u5f39\u7a97\u5173\u952e\u8bcd\uff1a{hit}");
         SaveConfigFromUi();
 
         try
         {
-            await _notificationService.NotifyAsync(
+            var notified = await _notificationService.NotifyAsync(
                 AppInfo.NotificationTitle,
                 body,
                 _config,
                 new NotificationEvent(dialog.Title, 0, Rectangle.Empty, dialogText));
+            if (!notified)
+            {
+                SetStatus("\u5f39\u7a97\u5173\u952e\u8bcd\u901a\u77e5\u5931\u8d25\uff1a\u6240\u6709\u901a\u77e5\u6e20\u9053\u5747\u53d1\u9001\u5931\u8d25");
+                LogWarn($"\u5f39\u7a97\u5173\u952e\u8bcd\u901a\u77e5\u672a\u6210\u529f\uff1a{hit}\uff1b\u672a\u6d88\u8017\u672a\u53d8\u5316\u63d0\u9192\u6b21\u6570");
+                return true;
+            }
+
             _unchangedKeywordNotifyCount = unchangedHit ? _unchangedKeywordNotifyCount + 1 : 1;
-            LogInfo($"弹窗关键词已提醒：{hit}；当前未变化连续提醒 {_unchangedKeywordNotifyCount}/{MaxUnchangedKeywordNotifications}");
+            LogInfo($"\u5f39\u7a97\u5173\u952e\u8bcd\u5df2\u63d0\u9192\uff1a{hit}\uff1b\u5f53\u524d\u672a\u53d8\u5316\u8fde\u7eed\u63d0\u9192 {_unchangedKeywordNotifyCount}/{MaxUnchangedKeywordNotifications}");
             return true;
         }
         catch (Exception ex)
         {
-            LogError("弹窗关键词通知发送失败", ex);
-            SetStatus($"弹窗关键词通知失败：{ex.Message}");
+            LogError("\u5f39\u7a97\u5173\u952e\u8bcd\u901a\u77e5\u53d1\u9001\u5931\u8d25", ex);
+            SetStatus($"\u5f39\u7a97\u5173\u952e\u8bcd\u901a\u77e5\u5931\u8d25\uff1a{ex.Message}");
             return true;
         }
     }
@@ -1015,11 +1022,18 @@ public sealed class MainForm : Form
 
         try
         {
-            await _notificationService.NotifyAsync(
+            var notified = await _notificationService.NotifyAsync(
                 AppInfo.NotificationTitle,
                 body,
                 _config,
                 new NotificationEvent(_selectedWindow?.Title ?? "", 0, region, ocrResult.FullText));
+            if (!notified)
+            {
+                SetStatus("\u5173\u952e\u8bcd\u901a\u77e5\u5931\u8d25\uff1a\u6240\u6709\u901a\u77e5\u6e20\u9053\u5747\u53d1\u9001\u5931\u8d25");
+                LogWarn($"\u5173\u952e\u8bcd\u901a\u77e5\u672a\u6210\u529f\uff1a{hit}\uff1b\u672a\u6d88\u8017\u672a\u53d8\u5316\u63d0\u9192\u6b21\u6570");
+                return false;
+            }
+
             _unchangedKeywordNotifyCount = unchangedHit ? _unchangedKeywordNotifyCount + 1 : 1;
             LogInfo($"\u5173\u952e\u8bcd\u5df2\u63d0\u9192\uff1a{hit}\uff1b\u5f53\u524d\u672a\u53d8\u5316\u8fde\u7eed\u63d0\u9192 {_unchangedKeywordNotifyCount}/{MaxUnchangedKeywordNotifications}");
             return true;

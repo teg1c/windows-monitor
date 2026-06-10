@@ -20,7 +20,7 @@ public sealed class NotificationService : IDisposable
         };
     }
 
-    public async Task NotifyAsync(string title, string body, AppConfig config, NotificationEvent notificationEvent)
+    public async Task<bool> NotifyAsync(string title, string body, AppConfig config, NotificationEvent notificationEvent)
     {
         _notifyIcon.BalloonTipTitle = title;
         _notifyIcon.BalloonTipText = body.Length > 180 ? body[..180] : body;
@@ -31,24 +31,47 @@ public sealed class NotificationService : IDisposable
             .ToList();
         if (channels.Count == 0)
         {
-            return;
+            return true;
         }
 
+        var successCount = 0;
         foreach (var channel in channels)
         {
             try
             {
                 await SendWebhookAsync(title, body, channel, notificationEvent);
-                _logService?.Info($"通知渠道发送成功：{channel.Name}", config.MaxLogLines);
+                successCount++;
+                _logService?.Info($"\u901a\u77e5\u6e20\u9053\u53d1\u9001\u6210\u529f\uff1a{channel.Name}", config.MaxLogLines);
             }
             catch (Exception ex)
             {
-                _logService?.Error($"通知渠道发送失败：{channel.Name}", ex, config.MaxLogLines);
+                _logService?.Error($"\u901a\u77e5\u6e20\u9053\u53d1\u9001\u5931\u8d25\uff1a{channel.Name}", ex, config.MaxLogLines);
+            }
+        }
+
+        return successCount > 0;
+    }
+
+    private async Task SendWebhookAsync(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent)
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                using var request = CreateWebhookRequest(title, body, channel, notificationEvent);
+                using var response = await _httpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts && IsTransientWebhookFailure(ex))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(700 * attempt));
             }
         }
     }
 
-    private async Task SendWebhookAsync(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent)
+    private static HttpRequestMessage CreateWebhookRequest(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent)
     {
         var method = new HttpMethod(string.IsNullOrWhiteSpace(channel.Method) ? "POST" : channel.Method.Trim().ToUpperInvariant());
         var url = RenderTemplate(channel.Url, title, body, notificationEvent);
@@ -61,11 +84,10 @@ public sealed class NotificationService : IDisposable
             if (key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
             {
                 contentType = value;
+                continue;
             }
-            else
-            {
-                request.Headers.TryAddWithoutValidation(key, value);
-            }
+
+            request.Headers.TryAddWithoutValidation(key, value);
         }
 
         if (method != HttpMethod.Get && !string.IsNullOrWhiteSpace(channel.BodyTemplate))
@@ -74,8 +96,28 @@ public sealed class NotificationService : IDisposable
             request.Content = new StringContent(content, Encoding.UTF8, contentType);
         }
 
-        using var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        return request;
+    }
+
+    private static bool IsTransientWebhookFailure(Exception exception)
+    {
+        if (exception is TaskCanceledException)
+        {
+            return true;
+        }
+
+        if (exception is not HttpRequestException httpRequestException)
+        {
+            return false;
+        }
+
+        if (httpRequestException.StatusCode is null)
+        {
+            return true;
+        }
+
+        var statusCode = (int)httpRequestException.StatusCode;
+        return statusCode == 408 || statusCode == 429 || statusCode >= 500;
     }
 
     private static IReadOnlyList<(string Key, string Value)> ParseHeaders(string headerText)
