@@ -8,6 +8,7 @@ public sealed class AppConfig
     public int Threshold { get; set; } = 36;
     public int StableSamples { get; set; } = 2;
     public int CooldownSeconds { get; set; } = 10;
+    public int MaxUnchangedNotifications { get; set; } = 3;
     public bool NotifyOnFirstSeen { get; set; }
     public string MonitorMode { get; set; } = "region";
     public string WindowTitle { get; set; } = "";
@@ -20,6 +21,7 @@ public sealed class AppConfig
     public string WebhookHeaders { get; set; } = "Content-Type: application/json";
     public string WebhookBodyTemplate { get; set; } = "{\"title\":\"{title}\",\"body\":\"{body}\",\"createdAt\":\"{time}\",\"window\":\"{window}\",\"distance\":{distance}}";
     public List<NotificationChannelConfig> NotificationChannels { get; set; } = [];
+    public bool WindowsNotificationChannelMigrated { get; set; }
     public bool OcrEnabled { get; set; } = true;
     public string OcrMode { get; set; } = "local";
     public string OcrUrl { get; set; } = "http://192.168.88.3:5000/ocr";
@@ -29,8 +31,18 @@ public sealed class AppConfig
     public int MaxOcrPixels { get; set; } = 800_000;
     public bool FullWindowKeywordEnabled { get; set; }
     public string KeywordDetectionMode { get; set; } = "ocr";
+    public bool OcrKeywordEnabled { get; set; } = true;
+    public bool DialogKeywordEnabled { get; set; }
+    public bool TaskbarFlashEnabled { get; set; }
+    public string TaskbarFlashWindowTitle { get; set; } = "";
+    public string TaskbarFlashWindowClassName { get; set; } = "";
+    public string TaskbarFlashProcessName { get; set; } = "";
     public int KeywordOcrIntervalMs { get; set; } = 2000;
+    public int DialogPollIntervalMs { get; set; } = 2000;
     public string WatchKeywords { get; set; } = "\u7f51\u7edc\u9519\u8bef\r\n\u8bf7\u91cd\u65b0\u767b\u5f55\r\n\u7f51\u7edc\u6709\u95ee\u9898";
+    public string OcrKeywords { get; set; } = "";
+    public string DialogKeywords { get; set; } = "";
+    public string TaskbarFlashKeywords { get; set; } = "";
     public int MaxLogLines { get; set; } = 1000;
 
     public static string DefaultPath => AppPaths.ConfigPath;
@@ -95,26 +107,94 @@ public sealed class AppConfig
 public sealed class NotificationChannelConfig
 {
     public string Name { get; set; } = "Webhook";
+    public string ChannelType { get; set; } = "webhook";
     public bool Enabled { get; set; }
     public string Preset { get; set; } = "generic";
     public string Method { get; set; } = "POST";
     public string Url { get; set; } = "";
     public string Headers { get; set; } = "Content-Type: application/json";
     public string BodyTemplate { get; set; } = "{\"title\":\"{title}\",\"body\":\"{body}\",\"createdAt\":\"{time}\",\"window\":\"{window}\",\"distance\":{distance}}";
+    public string OcrBodyTemplate { get; set; } = "";
+    public string DialogBodyTemplate { get; set; } = "";
+    public string TaskbarBodyTemplate { get; set; } = "";
+    public bool VoiceEnabled { get; set; }
+    public string OcrVoiceTemplate { get; set; } = "";
+    public string DialogVoiceTemplate { get; set; } = "";
+    public string TaskbarVoiceTemplate { get; set; } = "";
+    public bool UseForOcrKeyword { get; set; } = true;
+    public bool UseForDialogKeyword { get; set; } = true;
+    public bool UseForTaskbarFlash { get; set; } = true;
 
     public NotificationChannelConfig Clone()
     {
         return new NotificationChannelConfig
         {
             Name = Name,
+            ChannelType = ChannelType,
             Enabled = Enabled,
             Preset = Preset,
             Method = Method,
             Url = Url,
             Headers = Headers,
-            BodyTemplate = BodyTemplate
+            BodyTemplate = BodyTemplate,
+            OcrBodyTemplate = OcrBodyTemplate,
+            DialogBodyTemplate = DialogBodyTemplate,
+            TaskbarBodyTemplate = TaskbarBodyTemplate,
+            VoiceEnabled = VoiceEnabled,
+            OcrVoiceTemplate = OcrVoiceTemplate,
+            DialogVoiceTemplate = DialogVoiceTemplate,
+            TaskbarVoiceTemplate = TaskbarVoiceTemplate,
+            UseForOcrKeyword = UseForOcrKeyword,
+            UseForDialogKeyword = UseForDialogKeyword,
+            UseForTaskbarFlash = UseForTaskbarFlash
         };
     }
+
+    public bool IsWindowsLocal =>
+        string.Equals(ChannelType, "windows", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(Preset, "windows", StringComparison.OrdinalIgnoreCase);
+
+    public bool Supports(NotificationKind kind)
+    {
+        return kind switch
+        {
+            NotificationKind.OcrKeyword => UseForOcrKeyword,
+            NotificationKind.DialogKeyword => UseForDialogKeyword,
+            NotificationKind.TaskbarFlash => UseForTaskbarFlash,
+            _ => true
+        };
+    }
+
+    public string GetBodyTemplate(NotificationKind kind)
+    {
+        var template = kind switch
+        {
+            NotificationKind.OcrKeyword => OcrBodyTemplate,
+            NotificationKind.DialogKeyword => DialogBodyTemplate,
+            NotificationKind.TaskbarFlash => TaskbarBodyTemplate,
+            _ => ""
+        };
+
+        return string.IsNullOrWhiteSpace(template) ? BodyTemplate : template;
+    }
+
+    public string GetVoiceTemplate(NotificationKind kind)
+    {
+        return kind switch
+        {
+            NotificationKind.OcrKeyword => OcrVoiceTemplate,
+            NotificationKind.DialogKeyword => DialogVoiceTemplate,
+            NotificationKind.TaskbarFlash => TaskbarVoiceTemplate,
+            _ => ""
+        };
+    }
+}
+
+public enum NotificationKind
+{
+    OcrKeyword,
+    DialogKeyword,
+    TaskbarFlash
 }
 
 public sealed class RectDto

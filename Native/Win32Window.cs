@@ -17,6 +17,17 @@ public sealed record WindowInfo(IntPtr Handle, string Title, string ClassName, R
 
 public sealed record DialogInfo(IntPtr Handle, string Title, string Text, string ClassName, int ProcessId);
 
+public sealed record WindowSignalInfo(IntPtr Handle, string Title, string ClassName, int ProcessId, string ProcessName)
+{
+    public string SearchText => $"{Title}\n{ClassName}\n{ProcessName}";
+
+    public override string ToString()
+    {
+        var process = string.IsNullOrWhiteSpace(ProcessName) ? ProcessId.ToString() : ProcessName;
+        return $"{Title}  [{process}]";
+    }
+}
+
 public static class Win32Window
 {
     private const int Srccopy = 0x00CC0020;
@@ -24,6 +35,12 @@ public static class Win32Window
     private const int SmYvirtualscreen = 77;
     private const int SmCxvirtualscreen = 78;
     private const int SmCyvirtualscreen = 79;
+    public const int HshellRedraw = 0x0006;
+    public const int HshellHighBit = 0x8000;
+    public const int HshellFlash = 0x8006;
+    public const uint EventSystemAlert = 0x0002;
+    private const uint WineventOutOfContext = 0x0000;
+    private const uint WineventSkipOwnProcess = 0x0002;
 
     public static WindowInfo DesktopWindow { get; } = new(IntPtr.Zero, "\u6574\u4e2a\u684c\u9762", "DESKTOP");
 
@@ -52,6 +69,37 @@ public static class Win32Window
             .ToList();
     }
 
+    public static IReadOnlyList<WindowSignalInfo> ListVisibleWindowSignals()
+    {
+        var windows = new List<WindowSignalInfo>();
+        EnumWindows((hwnd, _) =>
+        {
+            if (!IsWindowVisible(hwnd))
+            {
+                return true;
+            }
+
+            var title = GetWindowTitle(hwnd);
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return true;
+            }
+
+            var info = GetWindowSignalInfo(hwnd);
+            if (info is not null)
+            {
+                windows.Add(info);
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        return windows
+            .OrderBy(window => window.ProcessName, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(window => window.Title, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
     public static Size GetCaptureSize(WindowInfo window)
     {
         return window.IsDesktopSource ? GetDesktopBounds(window).Size : GetClientSize(window.Handle);
@@ -71,6 +119,82 @@ public static class Win32Window
     {
         return window.IsDesktopSource ? CaptureDesktop(GetDesktopBounds(window)) : CaptureClient(window.Handle);
     }
+
+    public static WindowSignalInfo? GetWindowSignalInfo(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        var processId = GetWindowProcessId(hwnd);
+        if (processId == Environment.ProcessId)
+        {
+            return null;
+        }
+
+        var processName = "";
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(processId);
+            processName = process.ProcessName;
+        }
+        catch
+        {
+            // Process may have exited before we inspect it.
+        }
+
+        return new WindowSignalInfo(hwnd, GetWindowTitle(hwnd), GetWindowClassName(hwnd), processId, processName);
+    }
+
+    public static uint RegisterShellHookMessage()
+    {
+        return RegisterWindowMessage("SHELLHOOK");
+    }
+
+    public static bool RegisterShellHook(IntPtr hwnd)
+    {
+        return RegisterShellHookWindow(hwnd);
+    }
+
+    public static bool DeregisterShellHook(IntPtr hwnd)
+    {
+        return DeregisterShellHookWindow(hwnd);
+    }
+
+    public static bool IsShellFlashEvent(IntPtr wParam)
+    {
+        var code = wParam.ToInt64();
+        return code == HshellFlash ||
+               code == (HshellRedraw | HshellHighBit) ||
+               (code & HshellHighBit) != 0 && (code & 0x7fff) == HshellRedraw;
+    }
+
+    public static IntPtr RegisterAlertWinEventHook(WinEventDelegate callback)
+    {
+        return SetWinEventHook(
+            EventSystemAlert,
+            EventSystemAlert,
+            IntPtr.Zero,
+            callback,
+            0,
+            0,
+            WineventOutOfContext | WineventSkipOwnProcess);
+    }
+
+    public static bool UnregisterWinEventHook(IntPtr hook)
+    {
+        return hook != IntPtr.Zero && UnhookWinEvent(hook);
+    }
+
+    public delegate void WinEventDelegate(
+        IntPtr hWinEventHook,
+        uint eventType,
+        IntPtr hwnd,
+        int idObject,
+        int idChild,
+        uint dwEventThread,
+        uint dwmsEventTime);
 
     public static DialogInfo? FindVisibleDialogByKeywords(WindowInfo? source, IReadOnlyList<string> keywords)
     {
@@ -292,6 +416,28 @@ public static class Win32Window
 
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint RegisterWindowMessage(string lpString);
+
+    [DllImport("user32.dll")]
+    private static extern bool RegisterShellHookWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool DeregisterShellHookWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(
+        uint eventMin,
+        uint eventMax,
+        IntPtr hmodWinEventProc,
+        WinEventDelegate lpfnWinEventProc,
+        uint idProcess,
+        uint idThread,
+        uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
     [DllImport("user32.dll")]
     private static extern bool EnumChildWindows(IntPtr hwndParent, EnumWindowsProc enumProc, IntPtr lParam);

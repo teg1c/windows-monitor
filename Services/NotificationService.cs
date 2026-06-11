@@ -8,6 +8,7 @@ public sealed class NotificationService : IDisposable
     private readonly NotifyIcon _notifyIcon;
     private readonly HttpClient _httpClient = new();
     private readonly LogService? _logService;
+    private volatile bool _disposed;
 
     public NotificationService(LogService? logService = null)
     {
@@ -20,18 +21,14 @@ public sealed class NotificationService : IDisposable
         };
     }
 
-    public async Task<bool> NotifyAsync(string title, string body, AppConfig config, NotificationEvent notificationEvent)
+    public async Task<bool> NotifyAsync(string title, string body, AppConfig config, NotificationEvent notificationEvent, NotificationKind kind)
     {
-        _notifyIcon.BalloonTipTitle = title;
-        _notifyIcon.BalloonTipText = body.Length > 180 ? body[..180] : body;
-        _notifyIcon.ShowBalloonTip(5000);
-
         var channels = config.GetEffectiveNotificationChannels()
-            .Where(channel => channel.Enabled && !string.IsNullOrWhiteSpace(channel.Url))
+            .Where(channel => channel.Enabled && channel.Supports(kind) && (channel.IsWindowsLocal || !string.IsNullOrWhiteSpace(channel.Url)))
             .ToList();
         if (channels.Count == 0)
         {
-            return true;
+            return false;
         }
 
         var successCount = 0;
@@ -39,7 +36,15 @@ public sealed class NotificationService : IDisposable
         {
             try
             {
-                await SendWebhookAsync(title, body, channel, notificationEvent);
+                if (channel.IsWindowsLocal)
+                {
+                    SendWindowsNotification(title, body, channel, notificationEvent, kind, config.MaxLogLines);
+                }
+                else
+                {
+                    await SendWebhookAsync(title, body, channel, notificationEvent, kind);
+                }
+
                 successCount++;
                 _logService?.Info($"\u901a\u77e5\u6e20\u9053\u53d1\u9001\u6210\u529f\uff1a{channel.Name}", config.MaxLogLines);
             }
@@ -52,14 +57,83 @@ public sealed class NotificationService : IDisposable
         return successCount > 0;
     }
 
-    private async Task SendWebhookAsync(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent)
+    private void SendWindowsNotification(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent, NotificationKind kind, int maxLogLines)
+    {
+        var bodyTemplate = channel.GetBodyTemplate(kind);
+        var displayBody = string.IsNullOrWhiteSpace(bodyTemplate)
+            ? body
+            : RenderTemplate(bodyTemplate, title, body, notificationEvent);
+        if (displayBody.Length > 180)
+        {
+            displayBody = displayBody[..180];
+        }
+
+        _notifyIcon.BalloonTipTitle = title;
+        _notifyIcon.BalloonTipText = displayBody;
+        _notifyIcon.ShowBalloonTip(5000);
+
+        if (!channel.VoiceEnabled)
+        {
+            return;
+        }
+
+        var voiceTemplate = channel.GetVoiceTemplate(kind);
+        if (string.IsNullOrWhiteSpace(voiceTemplate))
+        {
+            return;
+        }
+
+        var voiceText = RenderTemplate(voiceTemplate, title, body, notificationEvent).Trim();
+        if (voiceText.Length > 0)
+        {
+            SpeakAsync(voiceText, maxLogLines);
+        }
+    }
+
+    private void SpeakAsync(string text, int maxLogLines)
+    {
+        _ = Task.Run(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            object? speaker = null;
+            try
+            {
+                var speechType = Type.GetTypeFromProgID("SAPI.SpVoice");
+                if (speechType is null)
+                {
+                    _logService?.Warn("\u672a\u627e\u5230 Windows SAPI \u8bed\u97f3\u5f15\u64ce\uff0c\u8bed\u97f3\u64ad\u62a5\u5df2\u8df3\u8fc7", maxLogLines);
+                    return;
+                }
+
+                speaker = Activator.CreateInstance(speechType);
+                speechType.InvokeMember("Speak", System.Reflection.BindingFlags.InvokeMethod, null, speaker, new object[] { text, 0 });
+            }
+            catch (Exception ex)
+            {
+                _logService?.Error("\u672c\u5730\u8bed\u97f3\u64ad\u62a5\u5931\u8d25", ex, maxLogLines);
+            }
+            finally
+            {
+                if (speaker is not null && System.Runtime.InteropServices.Marshal.IsComObject(speaker))
+                {
+                    System.Runtime.InteropServices.Marshal.FinalReleaseComObject(speaker);
+                }
+            }
+        });
+    }
+
+    private async Task SendWebhookAsync(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent, NotificationKind kind)
     {
         const int maxAttempts = 3;
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
-                using var request = CreateWebhookRequest(title, body, channel, notificationEvent);
+                using var request = CreateWebhookRequest(title, body, channel, notificationEvent, kind);
                 using var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 return;
@@ -71,7 +145,7 @@ public sealed class NotificationService : IDisposable
         }
     }
 
-    private static HttpRequestMessage CreateWebhookRequest(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent)
+    private static HttpRequestMessage CreateWebhookRequest(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent, NotificationKind kind)
     {
         var method = new HttpMethod(string.IsNullOrWhiteSpace(channel.Method) ? "POST" : channel.Method.Trim().ToUpperInvariant());
         var url = RenderTemplate(channel.Url, title, body, notificationEvent);
@@ -90,9 +164,10 @@ public sealed class NotificationService : IDisposable
             request.Headers.TryAddWithoutValidation(key, value);
         }
 
-        if (method != HttpMethod.Get && !string.IsNullOrWhiteSpace(channel.BodyTemplate))
+        var bodyTemplate = channel.GetBodyTemplate(kind);
+        if (method != HttpMethod.Get && !string.IsNullOrWhiteSpace(bodyTemplate))
         {
-            var content = RenderTemplate(channel.BodyTemplate, title, body, notificationEvent);
+            var content = RenderTemplate(bodyTemplate, title, body, notificationEvent);
             request.Content = new StringContent(content, Encoding.UTF8, contentType);
         }
 
@@ -165,6 +240,7 @@ public sealed class NotificationService : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
         _notifyIcon.Dispose();
         _httpClient.Dispose();
     }
