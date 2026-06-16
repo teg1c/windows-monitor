@@ -125,6 +125,7 @@ public sealed class MainForm : Form
     private DateTimeOffset _lastDialogKeywordAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastTaskbarFlashEventAt = DateTimeOffset.MinValue;
     private IntPtr _lastTaskbarFlashEventHandle;
+    private string _lastTaskbarFlashEventKey = "";
     private readonly AlertState _ocrAlertState = new();
     private readonly AlertState _dialogAlertState = new();
     private readonly AlertState _taskbarAlertState = new();
@@ -493,21 +494,46 @@ public sealed class MainForm : Form
         controlContainer.Margin = new Padding(0, 0, 0, 12);
         page.Controls.Add(controlContainer, 0, 0);
 
-        var viewerCard = CreateTaskCard("\u65e5\u5fd7\u5185\u5bb9", "\u76d1\u63a7\u8fc7\u7a0b\u3001OCR \u9519\u8bef\u548c\u901a\u77e5\u53d1\u9001\u95ee\u9898\u4f1a\u8bb0\u5f55\u5728\u8fd9\u91cc\u3002");
-        SetTaskCardPresentation(viewerCard, 0);
+        var viewerContainer = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = PanelBack,
+            Padding = new Padding(18, 18, 18, 20),
+            Margin = new Padding(0),
+            RowCount = 3,
+            ColumnCount = 1
+        };
+        viewerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        viewerContainer.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        viewerContainer.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        viewerContainer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var viewerTitle = new Label
+        {
+            Text = "\u65e5\u5fd7\u5185\u5bb9",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(28, 38, 50),
+            Font = new Font(Font.FontFamily, 11F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        viewerContainer.Controls.Add(viewerTitle, 0, 0);
+
+        var viewerDescription = new Label
+        {
+            Text = "\u76d1\u63a7\u8fc7\u7a0b\u3001OCR \u9519\u8bef\u548c\u901a\u77e5\u53d1\u9001\u95ee\u9898\u4f1a\u8bb0\u5f55\u5728\u8fd9\u91cc\u3002",
+            Dock = DockStyle.Fill,
+            ForeColor = MutedText,
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        viewerContainer.Controls.Add(viewerDescription, 0, 1);
+
         _logViewer.Multiline = true;
         _logViewer.ReadOnly = true;
         _logViewer.ScrollBars = ScrollBars.Both;
         _logViewer.WordWrap = false;
         _logViewer.Dock = DockStyle.Fill;
-        _logViewer.Margin = new Padding(0);
-        _logViewer.Height = 520;
-        AddFull(viewerCard, _logViewer);
-        StretchFormInputs(viewerCard);
-        _logViewer.Dock = DockStyle.Fill;
-        var viewerContainer = GetTaskCardContainer(viewerCard);
-        viewerContainer.Dock = DockStyle.Fill;
-        viewerContainer.Margin = new Padding(0);
+        _logViewer.Margin = new Padding(0, 8, 0, 0);
+        viewerContainer.Controls.Add(_logViewer, 0, 2);
         page.Controls.Add(viewerContainer, 0, 1);
 
         return page;
@@ -1346,12 +1372,15 @@ public sealed class MainForm : Form
         }
 
         var now = DateTimeOffset.Now;
-        if (hwnd == _lastTaskbarFlashEventHandle && now - _lastTaskbarFlashEventAt < TimeSpan.FromMilliseconds(800))
+        var eventKey = OcrTextParser.NormalizeText($"{info.ProcessName}|{info.ClassName}|{info.Title}");
+        if ((hwnd == _lastTaskbarFlashEventHandle || string.Equals(eventKey, _lastTaskbarFlashEventKey, StringComparison.OrdinalIgnoreCase)) &&
+            now - _lastTaskbarFlashEventAt < TimeSpan.FromMilliseconds(1000))
         {
             return;
         }
 
         _lastTaskbarFlashEventHandle = hwnd;
+        _lastTaskbarFlashEventKey = eventKey;
         _lastTaskbarFlashEventAt = now;
         LogInfo($"\u6536\u5230\u4efb\u52a1\u680f\u95ea\u70c1\u4e8b\u4ef6\uff1a{info.Title} [{info.ProcessName}]");
 
@@ -2724,10 +2753,17 @@ public sealed class MainForm : Form
             LogInfo("\u4efb\u52a1\u680f\u95ea\u70c1\u76d1\u542c\u5df2\u6ce8\u518c");
         }
 
-        _alertWinEventHook = Win32Window.RegisterAlertWinEventHook(_alertWinEventCallback);
-        if (_alertWinEventHook == IntPtr.Zero)
+        if (!_shellHookRegistered)
         {
-            LogWarn("\u4efb\u52a1\u680f\u95ea\u70c1\u5907\u7528\u76d1\u542c\u6ce8\u518c\u5931\u8d25");
+            _alertWinEventHook = Win32Window.RegisterAlertWinEventHook(_alertWinEventCallback);
+            if (_alertWinEventHook == IntPtr.Zero)
+            {
+                LogWarn("\u4efb\u52a1\u680f\u95ea\u70c1\u5907\u7528\u76d1\u542c\u6ce8\u518c\u5931\u8d25");
+            }
+            else
+            {
+                LogInfo("\u4efb\u52a1\u680f\u95ea\u70c1\u5907\u7528\u76d1\u542c\u5df2\u6ce8\u518c");
+            }
         }
     }
 
