@@ -5,9 +5,15 @@ namespace MhxyNotify.Services;
 
 public sealed class NotificationService : IDisposable
 {
+    private const long MinimumNotificationIntervalMilliseconds = 3000;
     private readonly NotifyIcon _notifyIcon;
     private readonly HttpClient _httpClient = new();
     private readonly LogService? _logService;
+    private readonly ContextMenuStrip _trayMenu = new();
+    private readonly ToolStripMenuItem _toggleMonitorItem = new();
+    private readonly ToolStripMenuItem _toggleFloatingWindowItem = new();
+    private readonly object _notificationRateLock = new();
+    private long? _lastNotificationStartedAt;
     private volatile bool _disposed;
 
     public NotificationService(LogService? logService = null)
@@ -21,6 +27,32 @@ public sealed class NotificationService : IDisposable
         };
     }
 
+    public void ConfigureTrayMenu(Func<bool> isMonitoring, Func<bool> isFloatingWindowVisible, Action toggleMonitor, Action toggleFloatingWindow, Action exitApplication)
+    {
+        _toggleMonitorItem.Click += (_, _) => toggleMonitor();
+        _toggleFloatingWindowItem.Click += (_, _) => toggleFloatingWindow();
+        var exitItem = new ToolStripMenuItem("\u9000\u51fa\u8f6f\u4ef6", null, (_, _) => exitApplication());
+        _trayMenu.Items.Clear();
+        _trayMenu.Items.Add(_toggleMonitorItem);
+        _trayMenu.Items.Add(new ToolStripSeparator());
+        _trayMenu.Items.Add(_toggleFloatingWindowItem);
+        _trayMenu.Items.Add(new ToolStripSeparator());
+        _trayMenu.Items.Add(exitItem);
+        _trayMenu.Opening += (_, _) =>
+        {
+            _toggleMonitorItem.Text = isMonitoring() ? "\u505c\u6b62\u76d1\u63a7" : "\u5f00\u59cb\u76d1\u63a7";
+            _toggleFloatingWindowItem.Text = isFloatingWindowVisible() ? "\u9690\u85cf\u6d6e\u7a97" : "\u663e\u793a\u6d6e\u7a97";
+        };
+        _notifyIcon.ContextMenuStrip = _trayMenu;
+        _notifyIcon.DoubleClick += (_, _) =>
+        {
+            if (!isFloatingWindowVisible())
+            {
+                toggleFloatingWindow();
+            }
+        };
+    }
+
     public async Task<bool> NotifyAsync(string title, string body, AppConfig config, NotificationEvent notificationEvent, NotificationKind kind)
     {
         var channels = config.GetEffectiveNotificationChannels()
@@ -29,6 +61,11 @@ public sealed class NotificationService : IDisposable
         if (channels.Count == 0)
         {
             return false;
+        }
+
+        if (!TryReserveNotificationSlot())
+        {
+            return true;
         }
 
         var successCount = 0;
@@ -55,6 +92,22 @@ public sealed class NotificationService : IDisposable
         }
 
         return successCount > 0;
+    }
+
+    private bool TryReserveNotificationSlot()
+    {
+        lock (_notificationRateLock)
+        {
+            var now = Environment.TickCount64;
+            if (_lastNotificationStartedAt is long lastNotificationStartedAt &&
+                now - lastNotificationStartedAt < MinimumNotificationIntervalMilliseconds)
+            {
+                return false;
+            }
+
+            _lastNotificationStartedAt = now;
+            return true;
+        }
     }
 
     private void SendWindowsNotification(string title, string body, NotificationChannelConfig channel, NotificationEvent notificationEvent, NotificationKind kind, int maxLogLines)
@@ -241,6 +294,7 @@ public sealed class NotificationService : IDisposable
     public void Dispose()
     {
         _disposed = true;
+        _trayMenu.Dispose();
         _notifyIcon.Dispose();
         _httpClient.Dispose();
     }

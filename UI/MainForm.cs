@@ -1,18 +1,28 @@
 using MhxyNotify.Models;
 using MhxyNotify.Native;
 using MhxyNotify.Services;
+using AButton = AntdUI.Button;
+using ACheckbox = AntdUI.Checkbox;
+using AInput = AntdUI.Input;
+using AInputNumber = AntdUI.InputNumber;
+using APanel = AntdUI.Panel;
+using ASelect = AntdUI.Select;
+using ATabs = AntdUI.Tabs;
 
 namespace MhxyNotify.UI;
 
 public sealed class MainForm : Form
 {
     private const int SettingsPanelWidth = 560;
-    private static readonly Color PageBack = Color.FromArgb(245, 247, 250);
+    private static readonly Color PageBack = Color.FromArgb(244, 247, 246);
     private static readonly Color PanelBack = Color.White;
-    private static readonly Color HeaderBack = Color.FromArgb(26, 36, 48);
-    private static readonly Color Accent = Color.FromArgb(20, 132, 92);
-    private static readonly Color Danger = Color.FromArgb(204, 74, 74);
-    private static readonly Color MutedText = Color.FromArgb(90, 99, 112);
+    private static readonly Color HeaderBack = Color.FromArgb(16, 44, 37);
+    private static readonly Color Accent = Color.FromArgb(18, 142, 98);
+    private static readonly Color AccentSoft = Color.FromArgb(230, 247, 239);
+    private static readonly Color Danger = Color.FromArgb(214, 69, 69);
+    private static readonly Color MutedText = Color.FromArgb(92, 105, 101);
+    private static readonly Color Border = Color.FromArgb(220, 228, 225);
+    private static readonly Color Ink = Color.FromArgb(28, 45, 40);
 
     private readonly AppConfig _config;
     private readonly LogService _logService = new();
@@ -23,91 +33,92 @@ public sealed class MainForm : Form
     private readonly UpdateService _updateService;
     private readonly System.Windows.Forms.Timer _timer = new();
 
-    private readonly ComboBox _windowList = new();
-    private readonly ComboBox _taskbarWindowList = new();
-    private readonly Button _refreshButton = new();
-    private readonly Button _refreshTaskbarWindowsButton = new();
-    private readonly Button _previewButton = new();
-    private readonly Button _monitorButton = new();
+    private readonly ASelect _windowList = new();
+    private readonly ASelect _taskbarWindowList = new();
+    private readonly AButton _refreshButton = new();
+    private readonly AButton _refreshTaskbarWindowsButton = new();
+    private readonly AButton _previewButton = new();
+    private readonly AButton _monitorButton = new();
     private readonly PreviewCanvas _preview = new();
-    private readonly CheckBox _ocrKeywordEnabled = new();
-    private readonly CheckBox _dialogKeywordEnabled = new();
-    private readonly CheckBox _taskbarFlashEnabled = new();
-    private readonly NumericUpDown _intervalInput = new();
-    private readonly NumericUpDown _cooldownInput = new();
-    private readonly NumericUpDown _maxUnchangedNotifyInput = new();
+    private readonly ACheckbox _ocrKeywordEnabled = new();
+    private readonly ACheckbox _dialogKeywordEnabled = new();
+    private readonly ACheckbox _taskbarFlashEnabled = new();
+    private readonly AInputNumber _intervalInput = new();
+    private readonly AInputNumber _cooldownInput = new();
+    private readonly AInputNumber _maxUnchangedNotifyInput = new();
 
-    private readonly CheckBox _ocrEnabled = new();
-    private readonly ComboBox _ocrMode = new();
-    private readonly TextBox _ocrUrl = new();
-    private readonly TextBox _ocrCommand = new();
-    private readonly TextBox _ocrArguments = new();
-    private readonly NumericUpDown _minConfidenceInput = new();
-    private readonly NumericUpDown _maxOcrPixelsInput = new();
-    private readonly TextBox _ocrText = new();
-    private readonly NumericUpDown _keywordOcrIntervalInput = new();
-    private readonly NumericUpDown _dialogIntervalInput = new();
-    private readonly TextBox _watchKeywords = new();
-    private readonly TextBox _dialogKeywords = new();
-    private readonly TextBox _taskbarFlashKeywords = new();
-    private readonly TextBox _keywordLastHitText = new();
+    private readonly ACheckbox _ocrEnabled = new();
+    private readonly ASelect _ocrMode = new();
+    private readonly AInput _ocrUrl = new();
+    private readonly AInput _ocrCommand = new();
+    private readonly AInput _ocrArguments = new();
+    private readonly AInputNumber _minConfidenceInput = new();
+    private readonly AInputNumber _maxOcrPixelsInput = new();
+    private readonly AInput _ocrText = new();
+    private readonly AInputNumber _keywordOcrIntervalInput = new();
+    private readonly AInputNumber _dialogIntervalInput = new();
+    private readonly AInput _watchKeywords = new();
+    private readonly AInput _dialogKeywords = new();
+    private readonly AInput _taskbarFlashKeywords = new();
+    private readonly AInput _keywordLastHitText = new();
     private readonly Label _taskbarFlashStatus = new();
 
-    private readonly CheckBox _webhookEnabled = new();
+    private readonly ACheckbox _webhookEnabled = new();
     private readonly CheckedListBox _webhookChannels = new();
-    private readonly TextBox _webhookName = new();
-    private readonly ComboBox _webhookPreset = new();
-    private readonly Button _applyWebhookPresetButton = new();
-    private readonly Button _addWebhookChannelButton = new();
-    private readonly Button _saveWebhookChannelButton = new();
-    private readonly Button _deleteWebhookChannelButton = new();
-    private readonly TextBox _webhookMethod = new();
-    private readonly TextBox _webhookUrl = new();
-    private readonly TextBox _webhookHeaders = new();
-    private readonly TextBox _webhookBodyTemplate = new();
-    private readonly TextBox _webhookOcrBodyTemplate = new();
-    private readonly TextBox _webhookDialogBodyTemplate = new();
-    private readonly TextBox _webhookTaskbarBodyTemplate = new();
-    private readonly TabControl _webhookBodyTabs = new();
-    private readonly CheckBox _windowsVoiceEnabled = new();
-    private readonly TextBox _windowsOcrVoiceTemplate = new();
-    private readonly TextBox _windowsDialogVoiceTemplate = new();
-    private readonly TextBox _windowsTaskbarVoiceTemplate = new();
-    private readonly TabControl _windowsVoiceTabs = new();
-    private readonly CheckBox _webhookForOcr = new();
-    private readonly CheckBox _webhookForDialog = new();
-    private readonly CheckBox _webhookForTaskbar = new();
+    private readonly AInput _webhookName = new();
+    private readonly ASelect _webhookPreset = new();
+    private readonly AButton _applyWebhookPresetButton = new();
+    private readonly AButton _addWebhookChannelButton = new();
+    private readonly AButton _saveWebhookChannelButton = new();
+    private readonly AButton _deleteWebhookChannelButton = new();
+    private readonly AInput _webhookMethod = new();
+    private readonly AInput _webhookUrl = new();
+    private readonly AInput _webhookHeaders = new();
+    private readonly AInput _webhookBodyTemplate = new();
+    private readonly AInput _webhookOcrBodyTemplate = new();
+    private readonly AInput _webhookDialogBodyTemplate = new();
+    private readonly AInput _webhookTaskbarBodyTemplate = new();
+    private readonly ATabs _webhookBodyTabs = new();
+    private readonly ACheckbox _windowsVoiceEnabled = new();
+    private readonly AInput _windowsOcrVoiceTemplate = new();
+    private readonly AInput _windowsDialogVoiceTemplate = new();
+    private readonly AInput _windowsTaskbarVoiceTemplate = new();
+    private readonly ATabs _windowsVoiceTabs = new();
+    private readonly ACheckbox _webhookForOcr = new();
+    private readonly ACheckbox _webhookForDialog = new();
+    private readonly ACheckbox _webhookForTaskbar = new();
     private readonly List<NotificationChannelConfig> _notificationChannels = [];
     private readonly List<Control> _webhookOnlyControls = [];
     private readonly List<Control> _windowsOnlyControls = [];
 
     private readonly Label _regionLabel = new();
     private readonly Label _statusLabel = new();
-    private readonly Label _statePill = new();
-    private readonly Button _checkUpdateButton = new();
-    private readonly TextBox _logViewer = new();
-    private readonly NumericUpDown _maxLogLinesInput = new();
-    private readonly Button _refreshLogButton = new();
-    private readonly Button _clearLogButton = new();
+    private readonly AntdUI.Tag _statePill = new();
+    private readonly AButton _checkUpdateButton = new();
+    private readonly AInput _logViewer = new();
+    private readonly AInputNumber _maxLogLinesInput = new();
+    private readonly AButton _refreshLogButton = new();
+    private readonly AButton _clearLogButton = new();
+    private readonly FloatingStatusForm _floatingStatus = new();
     private readonly System.Windows.Forms.Panel _pageHost = new();
-    private readonly Panel _previewShell = new();
+    private readonly APanel _previewShell = new();
     private readonly Label _previewEmptyLabel = new();
     private FlowLayoutPanel? _monitorTasksHost;
     private readonly Panel _monitorSubPageHost = new();
     private readonly List<Control> _monitorSubPages = [];
-    private readonly CenteredTabLabel _monitorOcrTaskButton = new();
-    private readonly CenteredTabLabel _monitorDialogTaskButton = new();
-    private readonly CenteredTabLabel _monitorTaskbarTaskButton = new();
+    private readonly AButton _monitorOcrTaskButton = new();
+    private readonly AButton _monitorDialogTaskButton = new();
+    private readonly AButton _monitorTaskbarTaskButton = new();
     private TableLayoutPanel? _monitorOcrLayout;
     private Control? _monitorPreviewArea;
     private readonly List<Control> _settingPages = [];
     private readonly List<Control> _sourceSelectionControls = [];
     private readonly List<Control> _regionSelectionControls = [];
     private readonly List<Control> _ocrSourceControls = [];
-    private readonly CenteredTabLabel _navMonitorButton = new();
-    private readonly CenteredTabLabel _navOcrButton = new();
-    private readonly CenteredTabLabel _navWebhookButton = new();
-    private readonly CenteredTabLabel _navLogButton = new();
+    private readonly AButton _navMonitorButton = new();
+    private readonly AButton _navOcrButton = new();
+    private readonly AButton _navWebhookButton = new();
+    private readonly AButton _navLogButton = new();
 
     private bool _previewing;
     private bool _monitoring;
@@ -146,33 +157,6 @@ public sealed class MainForm : Form
         }
     }
 
-    private sealed class CenteredTabLabel : Label
-    {
-        public CenteredTabLabel()
-        {
-            AutoSize = false;
-            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            using var background = new SolidBrush(BackColor);
-            e.Graphics.FillRectangle(background, ClientRectangle);
-            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-            using var brush = new SolidBrush(ForeColor);
-            using var format = new StringFormat
-            {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center,
-                Trimming = StringTrimming.EllipsisCharacter,
-                FormatFlags = StringFormatFlags.NoWrap
-            };
-            var bounds = ClientRectangle;
-            bounds.Inflate(0, -1);
-            e.Graphics.DrawString(Text, Font, brush, bounds, format);
-        }
-    }
-
     public MainForm()
     {
         _config = AppConfig.Load();
@@ -184,16 +168,30 @@ public sealed class MainForm : Form
         MinimumSize = new Size(1180, 780);
         Size = new Size(1320, 860);
         StartPosition = FormStartPosition.CenterScreen;
+        FormBorderStyle = FormBorderStyle.None;
         BackColor = PageBack;
         Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
         BuildUi();
+        ApplyAntdControlTheme(this);
         LoadConfigIntoUi();
+        RefreshTaskCardSizes(this);
         RefreshWindows();
         RefreshLogViewer();
 
         _timer.Tick += TimerOnTick;
         Shown += async (_, _) => await CheckForUpdatesAsync(userInitiated: false);
+        Shown += (_, _) =>
+        {
+            RefreshTaskCardSizes(this);
+            LayoutMonitorTaskCards();
+        };
+        Shown += (_, _) => ShowFloatingStatusWindow();
+        _floatingStatus.RestoreRequested += (_, _) => RestoreMainWindow();
+        _floatingStatus.ToggleMonitorRequested += async (_, _) => await ToggleMonitorFromMenuAsync();
+        _floatingStatus.HideRequested += (_, _) => HideFloatingStatusWindow();
+        _floatingStatus.ExitRequested += (_, _) => ExitApplication();
+        _notificationService.ConfigureTrayMenu(() => _monitoring, () => _floatingStatus.Visible, ToggleMonitorFromMenu, ToggleFloatingStatusWindow, ExitApplication);
         UpdateActionButtons();
     }
 
@@ -218,73 +216,58 @@ public sealed class MainForm : Form
 
     private Control BuildHeader()
     {
-        var header = new Panel
+        var header = new AntdUI.PageHeader
         {
             Dock = DockStyle.Fill,
-            BackColor = HeaderBack,
-            Padding = new Padding(18, 8, 18, 8)
+            BackColor = PanelBack,
+            ForeColor = Ink,
+            Padding = new Padding(18, 8, 18, 8),
+            Text = $"{AppInfo.DisplayName} v{AppInfo.Version}",
+            SubText = "\u7cfb\u7edf\u6d88\u606f\u76d1\u63a7",
+            ShowIcon = true,
+            Icon = Icon?.ToBitmap(),
+            ShowButton = true,
+            MaximizeBox = true,
+            MinimizeBox = true,
+            EnableDoubleClickMaximize = true,
+            DragMove = true,
+            DividerShow = true,
+            DividerColor = Border
         };
-
-        var title = new Label
-        {
-            Text = AppInfo.FullTitle,
-            AutoSize = false,
-            ForeColor = Color.White,
-            Font = new Font(Font.FontFamily, 13.5F, FontStyle.Bold, GraphicsUnit.Point),
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true,
-            Location = new Point(22, 14),
-            Size = new Size(520, 30),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        header.Controls.Add(title);
-
-        var about = new Label
-        {
-            Text = AppInfo.AboutText,
-            AutoSize = false,
-            ForeColor = Color.FromArgb(178, 190, 204),
-            Font = new Font(Font.FontFamily, 8F, FontStyle.Regular, GraphicsUnit.Point),
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true,
-            Location = new Point(24, 45),
-            Size = new Size(520, 20),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        header.Controls.Add(about);
 
         _statePill.Text = "\u5c31\u7eea";
         _statePill.TextAlign = ContentAlignment.MiddleCenter;
-        _statePill.ForeColor = Color.White;
-        _statePill.BackColor = Color.FromArgb(66, 78, 92);
-        _statePill.Size = new Size(118, 42);
+        _statePill.ForeColor = Accent;
+        _statePill.BackColor = AccentSoft;
+        _statePill.BorderWidth = 0;
+        _statePill.Radius = 18;
+        _statePill.Size = new Size(104, 36);
         header.Controls.Add(_statePill);
 
         _checkUpdateButton.Text = "\u68c0\u67e5\u66f4\u65b0";
-        StyleButton(_checkUpdateButton, Color.FromArgb(66, 78, 92), Color.White);
-        _checkUpdateButton.Size = new Size(136, 42);
+        StyleButton(_checkUpdateButton, Color.FromArgb(237, 242, 240), Ink);
+        _checkUpdateButton.Size = new Size(124, 38);
         _checkUpdateButton.Click += async (_, _) => await CheckForUpdatesAsync(userInitiated: true);
         header.Controls.Add(_checkUpdateButton);
 
         _monitorButton.Text = "\u5f00\u59cb\u76d1\u63a7";
         StyleButton(_monitorButton, Accent, Color.White);
-        _monitorButton.Size = new Size(160, 42);
+        _monitorButton.Type = AntdUI.TTypeMini.Primary;
+        _monitorButton.Size = new Size(144, 38);
         _monitorButton.Click += async (_, _) => await ToggleMonitorAsync();
         header.Controls.Add(_monitorButton);
 
         void LayoutHeader()
         {
             const int gap = 10;
-            var right = header.ClientSize.Width - 18;
-            _monitorButton.Location = new Point(right - _monitorButton.Width, 22);
+            // PageHeader reserves a wide hit-test area for its system buttons.
+            // Keep all custom actions completely to the left of that region.
+            var right = header.ClientSize.Width - 616;
+            _monitorButton.Location = new Point(right - _monitorButton.Width, 20);
             right = _monitorButton.Left - gap;
-            _checkUpdateButton.Location = new Point(right - _checkUpdateButton.Width, 22);
+            _checkUpdateButton.Location = new Point(right - _checkUpdateButton.Width, 20);
             right = _checkUpdateButton.Left - gap;
-            _statePill.Location = new Point(right - _statePill.Width, 22);
-
-            var titleRight = Math.Max(260, _statePill.Left - 28);
-            title.Width = Math.Max(220, titleRight - title.Left);
-            about.Width = title.Width;
+            _statePill.Location = new Point(right - _statePill.Width, 21);
         }
 
         header.SizeChanged += (_, _) => LayoutHeader();
@@ -299,30 +282,47 @@ public sealed class MainForm : Form
         var shell = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 2,
-            ColumnCount = 1,
+            RowCount = 1,
+            ColumnCount = 2,
             BackColor = PageBack,
-            Padding = new Padding(16, 14, 16, 12)
+            Padding = new Padding(0, 14, 16, 12)
         };
-        shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
         shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 184));
         shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        var nav = new Panel
+        var nav = new APanel
         {
             Dock = DockStyle.Fill,
             BackColor = PanelBack,
-            Padding = new Padding(14, 10, 14, 10),
-            Margin = new Padding(0, 0, 0, 12)
+            Padding = new Padding(12, 16, 12, 14),
+            Margin = new Padding(0, 0, 14, 0),
+            Radius = 14,
+            Shadow = 4,
+            ShadowColor = Color.FromArgb(24, 20, 52, 43),
+            BorderWidth = 1,
+            BorderColor = Border
         };
         var navStack = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
+            FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             BackColor = Color.Transparent
         };
         nav.Controls.Add(navStack);
+
+        var navTitle = new Label
+        {
+            Text = "\u25cf  \u76d1\u63a7\u4fe1\u53f7",
+            Width = 142,
+            Height = 26,
+            ForeColor = Ink,
+            Font = new Font(Font.FontFamily, 8.5F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        navStack.Controls.Add(navTitle);
 
         AddNavButton(navStack, _navMonitorButton, "\u76d1\u63a7", () => ShowSettingsPage(0));
         AddNavButton(navStack, _navOcrButton, "OCR", () => ShowSettingsPage(1));
@@ -349,7 +349,7 @@ public sealed class MainForm : Form
         }
 
         shell.Controls.Add(nav, 0, 0);
-        shell.Controls.Add(_pageHost, 0, 1);
+        shell.Controls.Add(_pageHost, 1, 0);
         ShowSettingsPage(0);
         return shell;
     }
@@ -363,8 +363,8 @@ public sealed class MainForm : Form
             ColumnCount = 1,
             BackColor = PageBack
         };
-        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 214));
-        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 276));
+        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
         page.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         page.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -443,17 +443,43 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = PanelBack,
-            Padding = new Padding(10, 9, 10, 9),
+            Padding = new Padding(18, 10, 18, 10),
             Margin = new Padding(0, 0, 0, 12)
         };
-        var stack = new FlowLayoutPanel
+        var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0)
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 168));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        nav.Controls.Add(layout);
+
+        var title = new Label
+        {
+            Text = "\u76d1\u63a7\u4efb\u52a1",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.FromArgb(34, 45, 58),
+            Font = new Font(Font.FontFamily, 10F, FontStyle.Bold, GraphicsUnit.Point),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        layout.Controls.Add(title, 0, 0);
+
+        var stack = new FlowLayoutPanel
+        {
+            Dock = DockStyle.None,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            BackColor = Color.Transparent
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, 4, 0, 0),
+            AutoSize = true,
+            Anchor = AnchorStyles.Left
         };
-        nav.Controls.Add(stack);
+        layout.Controls.Add(stack, 1, 0);
         AddSubTabButton(stack, _monitorOcrTaskButton, "OCR \u753b\u9762", () => ShowMonitorSubPage(0));
         AddSubTabButton(stack, _monitorDialogTaskButton, "\u5f39\u7a97\u6587\u672c", () => ShowMonitorSubPage(1));
         AddSubTabButton(stack, _monitorTaskbarTaskButton, "\u4efb\u52a1\u680f\u95ea\u70c1", () => ShowMonitorSubPage(2));
@@ -469,7 +495,7 @@ public sealed class MainForm : Form
             ColumnCount = 1,
             BackColor = PageBack
         };
-        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 178));
+        page.RowStyles.Add(new RowStyle(SizeType.Absolute, 232));
         page.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         page.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -529,7 +555,6 @@ public sealed class MainForm : Form
 
         _logViewer.Multiline = true;
         _logViewer.ReadOnly = true;
-        _logViewer.ScrollBars = ScrollBars.Both;
         _logViewer.WordWrap = false;
         _logViewer.Dock = DockStyle.Fill;
         _logViewer.Margin = new Padding(0, 8, 0, 0);
@@ -561,7 +586,6 @@ public sealed class MainForm : Form
         };
         AddFull(card, _ocrKeywordEnabled);
 
-        _windowList.DropDownStyle = ComboBoxStyle.DropDownList;
         var sourceLabel = AddLabeled(card, "\u753b\u9762\u6765\u6e90", _windowList);
         _sourceSelectionControls.Add(sourceLabel);
         _sourceSelectionControls.Add(_windowList);
@@ -583,7 +607,6 @@ public sealed class MainForm : Form
         _ocrSourceControls.Add(ocrIntervalLabel);
         _ocrSourceControls.Add(_keywordOcrIntervalInput);
         _watchKeywords.Multiline = true;
-        _watchKeywords.ScrollBars = ScrollBars.Vertical;
         _watchKeywords.Height = 96;
         _watchKeywords.PlaceholderText = "\u7f51\u7edc\u9519\u8bef\r\n\u8bf7\u91cd\u65b0\u767b\u5f55\r\nxxx";
         var ocrKeywordLabel = AddLabeled(card, "OCR \u5173\u952e\u8bcd", _watchKeywords);
@@ -610,7 +633,6 @@ public sealed class MainForm : Form
         AddNumber(card, "\u6587\u672c\u679a\u4e3e\u95f4\u9694\u6beb\u79d2", _dialogIntervalInput, 500, 30000);
 
         _dialogKeywords.Multiline = true;
-        _dialogKeywords.ScrollBars = ScrollBars.Vertical;
         _dialogKeywords.Height = 88;
         _dialogKeywords.PlaceholderText = "\u7f51\u7edc\u9519\u8bef\r\n\u8bf7\u91cd\u65b0\u767b\u5f55";
         AddLabeled(card, "\u5f39\u7a97\u5173\u952e\u8bcd", _dialogKeywords);
@@ -625,7 +647,6 @@ public sealed class MainForm : Form
         _taskbarFlashEnabled.CheckedChanged += (_, _) => SaveConfigFromUi();
         AddFull(card, _taskbarFlashEnabled);
 
-        _taskbarWindowList.DropDownStyle = ComboBoxStyle.DropDownList;
         _taskbarWindowList.SelectedIndexChanged += (_, _) => SaveConfigFromUi();
         AddLabeled(card, "\u76d1\u63a7\u8f6f\u4ef6", _taskbarWindowList);
 
@@ -653,7 +674,6 @@ public sealed class MainForm : Form
         };
         AddFull(settingsCard, _ocrEnabled);
 
-        _ocrMode.DropDownStyle = ComboBoxStyle.DropDownList;
         _ocrMode.Items.AddRange(["wxocr", "local", "command"]);
         _ocrMode.SelectedIndexChanged += (_, _) => UpdateOcrModeVisibility();
         AddLabeled(settingsCard, "\u6a21\u5f0f", _ocrMode);
@@ -674,14 +694,12 @@ public sealed class MainForm : Form
         var resultCard = CreateTaskCard("\u8bc6\u522b\u7ed3\u679c", "\u6700\u8fd1\u4e00\u6b21 OCR \u6587\u672c\u548c\u5173\u952e\u8bcd\u547d\u4e2d\u4fe1\u606f\u3002");
         _ocrText.Multiline = true;
         _ocrText.ReadOnly = true;
-        _ocrText.ScrollBars = ScrollBars.Vertical;
         _ocrText.Height = 200;
         _ocrText.PlaceholderText = "\u6700\u8fd1\u4e00\u6b21 OCR \u6587\u672c\u4f1a\u663e\u793a\u5728\u8fd9\u91cc";
         AddLabeled(resultCard, "\u6700\u8fd1 OCR", _ocrText);
 
         _keywordLastHitText.Multiline = true;
         _keywordLastHitText.ReadOnly = true;
-        _keywordLastHitText.ScrollBars = ScrollBars.Vertical;
         _keywordLastHitText.Height = 120;
         _keywordLastHitText.PlaceholderText = "\u5173\u952e\u8bcd\u547d\u4e2d\u548c\u76d1\u63a7\u533a\u57df\u4f1a\u663e\u793a\u5728\u8fd9\u91cc";
         AddLabeled(resultCard, "\u547d\u4e2d\u4fe1\u606f", _keywordLastHitText);
@@ -723,22 +741,20 @@ public sealed class MainForm : Form
         };
         AddFull(listCard, _webhookChannels);
 
-        var channelButtons = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
         _addWebhookChannelButton.Text = "\u65b0\u589e\u6e20\u9053";
         _addWebhookChannelButton.Click += (_, _) => AddWebhookChannel();
         StyleButton(_addWebhookChannelButton, Color.FromArgb(235, 239, 244), Color.FromArgb(38, 48, 60));
-        channelButtons.Controls.Add(_addWebhookChannelButton);
+        AddFull(listCard, _addWebhookChannelButton);
 
         _saveWebhookChannelButton.Text = "\u4fdd\u5b58\u6e20\u9053";
         _saveWebhookChannelButton.Click += (_, _) => SaveSelectedWebhookChannelFromUi();
         StyleButton(_saveWebhookChannelButton, Accent, Color.White);
-        channelButtons.Controls.Add(_saveWebhookChannelButton);
+        AddFull(listCard, _saveWebhookChannelButton);
 
         _deleteWebhookChannelButton.Text = "\u5220\u9664\u6e20\u9053";
         _deleteWebhookChannelButton.Click += (_, _) => DeleteSelectedWebhookChannel();
         StyleButton(_deleteWebhookChannelButton, Danger, Color.White);
-        channelButtons.Controls.Add(_deleteWebhookChannelButton);
-        AddFull(listCard, channelButtons);
+        AddFull(listCard, _deleteWebhookChannelButton);
 
         _webhookEnabled.Text = "\u542f\u7528\u5f53\u524d\u6e20\u9053";
         _webhookEnabled.CheckedChanged += (_, _) =>
@@ -795,7 +811,6 @@ public sealed class MainForm : Form
         _webhookName.PlaceholderText = "\u4f8b\u5982\uff1a\u9489\u9489\u7fa4\u3001Bark\u624b\u673a";
         AddLabeled(editorCard, "\u6e20\u9053\u540d", _webhookName);
 
-        _webhookPreset.DropDownStyle = ComboBoxStyle.DropDownList;
         _webhookPreset.Items.AddRange(["windows", "generic", "serverchan", "bark", "dingtalk", "feishu", "wecom", "custom"]);
         _webhookPreset.SelectedIndexChanged += (_, _) =>
         {
@@ -809,7 +824,7 @@ public sealed class MainForm : Form
         AddLabeled(editorCard, "\u9884\u8bbe", _webhookPreset);
 
         _applyWebhookPresetButton.Text = "\u5e94\u7528\u9884\u8bbe";
-        _applyWebhookPresetButton.Click += (_, _) => ApplyWebhookPreset(_webhookPreset.SelectedItem?.ToString() ?? "generic");
+        _applyWebhookPresetButton.Click += (_, _) => ApplyWebhookPreset(_webhookPreset.SelectedValue?.ToString() ?? "generic");
         StyleButton(_applyWebhookPresetButton, Color.FromArgb(235, 239, 244), Color.FromArgb(38, 48, 60));
         AddFull(editorCard, _applyWebhookPresetButton);
 
@@ -822,7 +837,6 @@ public sealed class MainForm : Form
         _webhookOnlyControls.AddRange([urlLabel, _webhookUrl]);
 
         _webhookHeaders.Multiline = true;
-        _webhookHeaders.ScrollBars = ScrollBars.Vertical;
         _webhookHeaders.Height = 74;
         _webhookHeaders.PlaceholderText = "Content-Type: application/json";
         var headersLabel = AddLabeled(editorCard, "Headers", _webhookHeaders);
@@ -833,7 +847,7 @@ public sealed class MainForm : Form
         ConfigureBodyTemplateTextBox(_webhookDialogBodyTemplate, "\u7559\u7a7a\u5219\u4f7f\u7528\u901a\u7528 Body");
         ConfigureBodyTemplateTextBox(_webhookTaskbarBodyTemplate, "\u7559\u7a7a\u5219\u4f7f\u7528\u901a\u7528 Body");
         _webhookBodyTabs.Height = 250;
-        _webhookBodyTabs.TabPages.Clear();
+        _webhookBodyTabs.Pages.Clear();
         AddBodyTemplateTab(_webhookBodyTabs, "\u901a\u7528", _webhookBodyTemplate);
         AddBodyTemplateTab(_webhookBodyTabs, "OCR", _webhookOcrBodyTemplate);
         AddBodyTemplateTab(_webhookBodyTabs, "\u5f39\u7a97", _webhookDialogBodyTemplate);
@@ -859,7 +873,7 @@ public sealed class MainForm : Form
         ConfigureBodyTemplateTextBox(_windowsDialogVoiceTemplate, "\u4f8b\u5982\uff1a\u68c0\u6d4b\u5230\u7a97\u53e3\u5f39\u7a97");
         ConfigureBodyTemplateTextBox(_windowsTaskbarVoiceTemplate, "\u4f8b\u5982\uff1a\u4efb\u52a1\u680f\u95ea\u70c1\u63d0\u9192");
         _windowsVoiceTabs.Height = 156;
-        _windowsVoiceTabs.TabPages.Clear();
+        _windowsVoiceTabs.Pages.Clear();
         AddBodyTemplateTab(_windowsVoiceTabs, "OCR", _windowsOcrVoiceTemplate);
         AddBodyTemplateTab(_windowsVoiceTabs, "\u5f39\u7a97", _windowsDialogVoiceTemplate);
         AddBodyTemplateTab(_windowsVoiceTabs, "\u95ea\u70c1", _windowsTaskbarVoiceTemplate);
@@ -961,7 +975,7 @@ public sealed class MainForm : Form
         _taskbarFlashEnabled.Checked = _config.TaskbarFlashEnabled;
 
         _ocrEnabled.Checked = _config.OcrEnabled;
-        _ocrMode.SelectedItem = ResolveOcrMode(_config.OcrMode);
+        _ocrMode.SelectedValue = ResolveOcrMode(_config.OcrMode);
         _ocrUrl.Text = _config.OcrUrl;
         _ocrCommand.Text = _config.OcrCommand;
         _ocrArguments.Text = _config.OcrArguments;
@@ -1003,7 +1017,7 @@ public sealed class MainForm : Form
             (!string.IsNullOrEmpty(_config.WindowClassName) && window.ClassName == _config.WindowClassName));
         if (selected is not null)
         {
-            _windowList.SelectedItem = selected;
+            _windowList.SelectedValue = selected;
         }
         else if (_windowList.Items.Count > 0)
         {
@@ -1021,7 +1035,7 @@ public sealed class MainForm : Form
             MatchesConfiguredTaskbarTarget(target, _config.TaskbarFlashWindowTitle, _config.TaskbarFlashWindowClassName, _config.TaskbarFlashProcessName));
         if (selectedTaskbarTarget is not null)
         {
-            _taskbarWindowList.SelectedItem = selectedTaskbarTarget;
+            _taskbarWindowList.SelectedValue = selectedTaskbarTarget;
         }
         else if (_taskbarWindowList.Items.Count > 0)
         {
@@ -1051,7 +1065,7 @@ public sealed class MainForm : Form
 
         if (!_ocrKeywordEnabled.Checked)
         {
-            MessageBox.Show(this, "\u9884\u89c8\u53ea\u7528\u4e8e OCR \u753b\u9762\u76d1\u63a7\uff0c\u8bf7\u5148\u542f\u7528 OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u3002", "\u9700\u8981 OCR \u9884\u89c8", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowModal("\u9700\u8981 OCR \u9884\u89c8", "\u9884\u89c8\u53ea\u7528\u4e8e OCR \u753b\u9762\u76d1\u63a7\uff0c\u8bf7\u5148\u542f\u7528 OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u3002");
             return;
         }
 
@@ -1127,7 +1141,7 @@ public sealed class MainForm : Form
         var anyEnabled = _ocrKeywordEnabled.Checked || _dialogKeywordEnabled.Checked || _taskbarFlashEnabled.Checked;
         if (!anyEnabled)
         {
-            MessageBox.Show(this, "\u8bf7\u81f3\u5c11\u542f\u7528\u4e00\u7c7b\u63d0\u9192\u540e\u518d\u5f00\u59cb\u76d1\u63a7\u3002", "\u9700\u8981\u63d0\u9192\u9879", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowModal("\u9700\u8981\u63d0\u9192\u9879", "\u8bf7\u81f3\u5c11\u542f\u7528\u4e00\u7c7b\u63d0\u9192\u540e\u518d\u5f00\u59cb\u76d1\u63a7\u3002");
             return false;
         }
 
@@ -1135,26 +1149,26 @@ public sealed class MainForm : Form
         {
             if (!_ocrEnabled.Checked)
             {
-                MessageBox.Show(this, "OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u9700\u8981\u5f00\u542f OCR\u3002", "\u9700\u8981 OCR", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ShowModal("\u9700\u8981 OCR", "OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u9700\u8981\u5f00\u542f OCR\u3002");
                 return false;
             }
 
             if (GetOcrKeywords().Count == 0)
             {
-                MessageBox.Show(this, "\u8bf7\u4e3a OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u81f3\u5c11\u586b\u4e00\u4e2a\u5173\u952e\u8bcd\u3002", "\u9700\u8981\u5173\u952e\u8bcd", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ShowModal("\u9700\u8981\u5173\u952e\u8bcd", "\u8bf7\u4e3a OCR \u753b\u9762\u5173\u952e\u8bcd\u63d0\u9192\u81f3\u5c11\u586b\u4e00\u4e2a\u5173\u952e\u8bcd\u3002");
                 return false;
             }
         }
 
         if (_dialogKeywordEnabled.Checked && GetDialogKeywords().Count == 0)
         {
-            MessageBox.Show(this, "\u8bf7\u4e3a\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u63d0\u9192\u81f3\u5c11\u586b\u4e00\u4e2a\u5173\u952e\u8bcd\u3002", "\u9700\u8981\u5173\u952e\u8bcd", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowModal("\u9700\u8981\u5173\u952e\u8bcd", "\u8bf7\u4e3a\u5916\u90e8\u7a97\u53e3/\u5f39\u7a97\u6587\u672c\u63d0\u9192\u81f3\u5c11\u586b\u4e00\u4e2a\u5173\u952e\u8bcd\u3002");
             return false;
         }
 
         if (_taskbarFlashEnabled.Checked && GetSelectedTaskbarTarget() is null)
         {
-            MessageBox.Show(this, "\u8bf7\u5148\u9009\u62e9\u8981\u76d1\u63a7\u4efb\u52a1\u680f\u95ea\u70c1\u7684\u8f6f\u4ef6\u3002", "\u9700\u8981\u76d1\u63a7\u8f6f\u4ef6", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowModal("\u9700\u8981\u76d1\u63a7\u8f6f\u4ef6", "\u8bf7\u5148\u9009\u62e9\u8981\u76d1\u63a7\u4efb\u52a1\u680f\u95ea\u70c1\u7684\u8f6f\u4ef6\u3002");
             return false;
         }
 
@@ -1260,12 +1274,12 @@ public sealed class MainForm : Form
 
     private Task<OcrReadResult> ReadOcrAsync(Bitmap crop)
     {
-        if (string.Equals(_ocrMode.SelectedItem?.ToString(), "local", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(_ocrMode.SelectedValue?.ToString(), "local", StringComparison.OrdinalIgnoreCase))
         {
             return _localOcrService.ReadLatestMessageAsync(crop);
         }
 
-        if (string.Equals(_ocrMode.SelectedItem?.ToString(), "command", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(_ocrMode.SelectedValue?.ToString(), "command", StringComparison.OrdinalIgnoreCase))
         {
             return _commandOcrService.ReadLatestMessageAsync(crop, _ocrCommand.Text.Trim(), _ocrArguments.Text.Trim());
         }
@@ -1418,7 +1432,7 @@ public sealed class MainForm : Form
     private bool ValidateOcrSettingsForMonitor()
     {
         if (!_ocrEnabled.Checked ||
-            !string.Equals(_ocrMode.SelectedItem?.ToString(), "command", StringComparison.OrdinalIgnoreCase))
+            !string.Equals(_ocrMode.SelectedValue?.ToString(), "command", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
@@ -1430,7 +1444,7 @@ public sealed class MainForm : Form
 
         var message = error + Environment.NewLine + Environment.NewLine +
                       "\u4f60\u5df2\u6709 wxocr \u670d\u52a1\u65f6\uff0c\u5efa\u8bae\u628a OCR \u6a21\u5f0f\u5207\u6362\u4e3a wxocr\uff0cURL \u586b\u5199 http://192.168.88.3:5000/ocr\u3002";
-        MessageBox.Show(this, message, "OCR \u547d\u4ee4\u4e0d\u53ef\u7528", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        ShowModal("OCR \u547d\u4ee4\u4e0d\u53ef\u7528", message, AntdUI.TType.Warn);
         LogWarn(error);
         SetStatus(error);
         return false;
@@ -1639,7 +1653,7 @@ public sealed class MainForm : Form
 
     private int GetMaxUnchangedNotifications() => Math.Clamp((int)_maxUnchangedNotifyInput.Value, 1, 100);
 
-    private static IReadOnlyList<string> GetKeywords(TextBox textBox)
+    private static IReadOnlyList<string> GetKeywords(AInput textBox)
     {
         return textBox.Text
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
@@ -1675,9 +1689,9 @@ public sealed class MainForm : Form
 
     private bool TrySelectWindow()
     {
-        if (_windowList.SelectedItem is not WindowInfo window)
+        if (_windowList.SelectedValue is not WindowInfo window)
         {
-            MessageBox.Show(this, "\u8bf7\u5148\u9009\u62e9\u8981\u5171\u4eab\u6216\u76d1\u63a7\u7684\u6765\u6e90\uff0c\u53ef\u4ee5\u9009\u201c\u6574\u4e2a\u684c\u9762\u201d\u6216\u67d0\u4e2a\u7a97\u53e3\u3002", "\u9700\u8981\u76d1\u63a7\u6765\u6e90", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ShowModal("\u9700\u8981\u76d1\u63a7\u6765\u6e90", "\u8bf7\u5148\u9009\u62e9\u8981\u5171\u4eab\u6216\u76d1\u63a7\u7684\u6765\u6e90\uff0c\u53ef\u4ee5\u9009\u201c\u6574\u4e2a\u684c\u9762\u201d\u6216\u67d0\u4e2a\u7a97\u53e3\u3002");
             return false;
         }
 
@@ -1687,12 +1701,12 @@ public sealed class MainForm : Form
 
     private string GetSelectedSourceTitle()
     {
-        return _selectedWindow?.Title ?? (_windowList.SelectedItem as WindowInfo)?.Title ?? "\u672a\u9009\u62e9";
+        return _selectedWindow?.Title ?? (_windowList.SelectedValue as WindowInfo)?.Title ?? "\u672a\u9009\u62e9";
     }
 
     private WindowSignalInfo? GetSelectedTaskbarTarget()
     {
-        return _taskbarWindowList.SelectedItem as WindowSignalInfo;
+        return _taskbarWindowList.SelectedValue as WindowSignalInfo;
     }
 
     private static bool MatchesConfiguredTaskbarTarget(
@@ -1861,10 +1875,10 @@ public sealed class MainForm : Form
         {
             _webhookEnabled.Checked = channel.Enabled;
             _webhookName.Text = channel.Name;
-            _webhookPreset.SelectedItem = channel.IsWindowsLocal ? "windows" : string.IsNullOrWhiteSpace(channel.Preset) ? "custom" : channel.Preset;
-            if (_webhookPreset.SelectedItem is null)
+            _webhookPreset.SelectedValue = channel.IsWindowsLocal ? "windows" : string.IsNullOrWhiteSpace(channel.Preset) ? "custom" : channel.Preset;
+            if (_webhookPreset.SelectedValue is null)
             {
-                _webhookPreset.SelectedItem = "custom";
+                _webhookPreset.SelectedValue = "custom";
             }
 
             _webhookMethod.Text = string.IsNullOrWhiteSpace(channel.Method) ? "POST" : channel.Method;
@@ -1896,7 +1910,7 @@ public sealed class MainForm : Form
         {
             _webhookEnabled.Checked = false;
             _webhookName.Clear();
-            _webhookPreset.SelectedItem = "generic";
+            _webhookPreset.SelectedValue = "generic";
             _webhookMethod.Text = "POST";
             _webhookUrl.Clear();
             _webhookHeaders.Text = "Content-Type: application/json";
@@ -1922,7 +1936,7 @@ public sealed class MainForm : Form
     private void UpdateWebhookEditorMode(NotificationChannelConfig? channel)
     {
         var isWindows = channel?.IsWindowsLocal ??
-                        string.Equals(_webhookPreset.SelectedItem?.ToString(), "windows", StringComparison.OrdinalIgnoreCase);
+                        string.Equals(_webhookPreset.SelectedValue?.ToString(), "windows", StringComparison.OrdinalIgnoreCase);
 
         foreach (var control in _webhookOnlyControls)
         {
@@ -1963,7 +1977,7 @@ public sealed class MainForm : Form
         var channel = _notificationChannels[_webhookChannels.SelectedIndex];
         channel.Name = string.IsNullOrWhiteSpace(_webhookName.Text) ? $"Webhook {_webhookChannels.SelectedIndex + 1}" : _webhookName.Text.Trim();
         channel.Enabled = _webhookEnabled.Checked;
-        channel.Preset = _webhookPreset.SelectedItem?.ToString() ?? "custom";
+        channel.Preset = _webhookPreset.SelectedValue?.ToString() ?? "custom";
         channel.ChannelType = ResolveNotificationChannelType(channel.Preset);
         var isWindows = channel.IsWindowsLocal;
         channel.Method = isWindows ? "" : string.IsNullOrWhiteSpace(_webhookMethod.Text) ? "POST" : _webhookMethod.Text.Trim();
@@ -2029,7 +2043,7 @@ public sealed class MainForm : Form
 
     private void ApplyWebhookPreset(string preset)
     {
-        _webhookPreset.SelectedItem = preset;
+        _webhookPreset.SelectedValue = preset;
         if (string.Equals(preset, "custom", StringComparison.OrdinalIgnoreCase))
         {
             SaveSelectedWebhookChannelFromUi();
@@ -2099,13 +2113,13 @@ public sealed class MainForm : Form
             return;
         }
 
-        if (_windowList.SelectedItem is WindowInfo window)
+        if (_windowList.SelectedValue is WindowInfo window)
         {
             _config.WindowTitle = window.Title;
             _config.WindowClassName = window.ClassName;
         }
 
-        if (_taskbarWindowList.SelectedItem is WindowSignalInfo taskbarTarget)
+        if (_taskbarWindowList.SelectedValue is WindowSignalInfo taskbarTarget)
         {
             _config.TaskbarFlashWindowTitle = taskbarTarget.Title;
             _config.TaskbarFlashWindowClassName = taskbarTarget.ClassName;
@@ -2122,7 +2136,7 @@ public sealed class MainForm : Form
         _config.KeywordDetectionMode = _dialogKeywordEnabled.Checked && !_ocrKeywordEnabled.Checked ? "windowText" : "ocr";
 
         _config.OcrEnabled = _ocrEnabled.Checked;
-        _config.OcrMode = _ocrMode.SelectedItem?.ToString() ?? "local";
+        _config.OcrMode = _ocrMode.SelectedValue?.ToString() ?? "local";
         _config.OcrUrl = _ocrUrl.Text.Trim();
         _config.OcrCommand = _ocrCommand.Text.Trim();
         _config.OcrArguments = _ocrArguments.Text.Trim();
@@ -2141,7 +2155,7 @@ public sealed class MainForm : Form
         _config.WindowsNotificationChannelMigrated = true;
         var firstChannel = _notificationChannels.FirstOrDefault();
         _config.WebhookEnabled = firstChannel?.Enabled ?? _webhookEnabled.Checked;
-        _config.WebhookPreset = firstChannel?.Preset ?? (_webhookPreset.SelectedItem?.ToString() ?? "custom");
+        _config.WebhookPreset = firstChannel?.Preset ?? (_webhookPreset.SelectedValue?.ToString() ?? "custom");
         _config.WebhookMethod = firstChannel?.Method ?? (string.IsNullOrWhiteSpace(_webhookMethod.Text) ? "POST" : _webhookMethod.Text.Trim());
         _config.WebhookUrl = firstChannel?.Url ?? _webhookUrl.Text.Trim();
         _config.WebhookHeaders = firstChannel?.Headers ?? _webhookHeaders.Text.Trim();
@@ -2155,14 +2169,13 @@ public sealed class MainForm : Form
     private void RefreshLogViewer()
     {
         _logViewer.Text = _logService.ReadAll();
-        _logViewer.SelectionStart = _logViewer.TextLength;
+        _logViewer.SelectionStart = _logViewer.Text.Length;
         _logViewer.ScrollToCaret();
     }
 
     private void ClearLogs()
     {
-        var result = MessageBox.Show(this, "\u786e\u5b9a\u8981\u6e05\u7a7a\u65e5\u5fd7\u5417\uff1f", "\u6e05\u7a7a\u65e5\u5fd7", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-        if (result != DialogResult.Yes)
+        if (!ConfirmModal("\u6e05\u7a7a\u65e5\u5fd7", "\u786e\u5b9a\u8981\u6e05\u7a7a\u65e5\u5fd7\u5417\uff1f", "\u6e05\u7a7a", "\u53d6\u6d88", AntdUI.TType.Warn))
         {
             return;
         }
@@ -2205,7 +2218,7 @@ public sealed class MainForm : Form
             {
                 if (userInitiated)
                 {
-                    MessageBox.Show(this, "\u6682\u65f6\u6ca1\u6709\u627e\u5230\u53ef\u7528\u66f4\u65b0\u3002", "\u68c0\u67e5\u66f4\u65b0", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    ShowModal("\u68c0\u67e5\u66f4\u65b0", "\u6682\u65f6\u6ca1\u6709\u627e\u5230\u53ef\u7528\u66f4\u65b0\u3002");
                     SetStatus("\u672a\u627e\u5230\u53ef\u7528\u66f4\u65b0");
                 }
 
@@ -2216,20 +2229,19 @@ public sealed class MainForm : Form
             {
                 if (userInitiated)
                 {
-                    MessageBox.Show(this, $"\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\u3002\n\n\u5f53\u524d\uff1a{AppInfo.Version}\n\u6700\u65b0\uff1a{updateInfo.Version}", "\u68c0\u67e5\u66f4\u65b0", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    ShowModal("\u68c0\u67e5\u66f4\u65b0", $"\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\u3002\n\n\u5f53\u524d\uff1a{AppInfo.Version}\n\u6700\u65b0\uff1a{updateInfo.Version}");
                     SetStatus($"\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\uff1a{AppInfo.Version}");
                 }
 
                 return;
             }
 
-            var result = MessageBox.Show(
-                this,
-                $"\u53d1\u73b0\u65b0\u7248\u672c {updateInfo.Version}\uff0c\u5f53\u524d\u7248\u672c {AppInfo.Version}\u3002\n\n\u662f\u5426\u4e0b\u8f7d\u5e76\u542f\u52a8\u66f4\u65b0\uff1f",
-                "\u53d1\u73b0\u65b0\u7248\u672c",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Information);
-            if (result != DialogResult.Yes)
+            if (!ConfirmModal(
+                    "\u53d1\u73b0\u65b0\u7248\u672c",
+                    $"\u53d1\u73b0\u65b0\u7248\u672c {updateInfo.Version}\uff0c\u5f53\u5248\u672c {AppInfo.Version}\u3002\n\n\u662f\u5426\u4e0b\u8f7d\u5e76\u542f\u52a8\u66f4\u65b0\uff1f",
+                    "\u4e0b\u8f7d\u5e76\u66f4\u65b0",
+                    "\u7a0d\u540e",
+                    AntdUI.TType.Info))
             {
                 return;
             }
@@ -2246,7 +2258,7 @@ public sealed class MainForm : Form
             LogError("\u68c0\u67e5\u6216\u542f\u52a8\u66f4\u65b0\u5931\u8d25", ex);
             if (userInitiated)
             {
-                MessageBox.Show(this, $"\u68c0\u67e5\u6216\u542f\u52a8\u66f4\u65b0\u5931\u8d25\uff1a{ex.Message}", "\u66f4\u65b0\u5931\u8d25", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowModal("\u66f4\u65b0\u5931\u8d25", $"\u68c0\u67e5\u6216\u542f\u52a8\u66f4\u65b0\u5931\u8d25\uff1a{ex.Message}", AntdUI.TType.Warn);
             }
         }
         finally
@@ -2261,14 +2273,16 @@ public sealed class MainForm : Form
         _monitorButton.Text = _monitoring ? "\u505c\u6b62\u76d1\u63a7" : "\u5f00\u59cb\u76d1\u63a7";
         StyleButton(_monitorButton, _monitoring ? Danger : Accent, Color.White);
         _statePill.Text = _monitoring ? "\u76d1\u63a7\u4e2d" : _previewing ? "\u9884\u89c8\u4e2d" : "\u5c31\u7eea";
-        _statePill.BackColor = _monitoring ? Accent : _previewing ? Color.FromArgb(55, 105, 150) : Color.FromArgb(66, 78, 92);
+        _statePill.BackColor = _monitoring ? Accent : _previewing ? Color.FromArgb(225, 240, 250) : AccentSoft;
+        _statePill.ForeColor = _monitoring ? Color.White : _previewing ? Color.FromArgb(43, 105, 145) : Accent;
+        UpdateFloatingStatus();
     }
 
     private void UpdateOcrModeVisibility()
     {
         var ocrEngineEnabled = _ocrEnabled.Checked;
-        var commandMode = string.Equals(_ocrMode.SelectedItem?.ToString(), "command", StringComparison.OrdinalIgnoreCase);
-        var wxMode = string.Equals(_ocrMode.SelectedItem?.ToString(), "wxocr", StringComparison.OrdinalIgnoreCase);
+        var commandMode = string.Equals(_ocrMode.SelectedValue?.ToString(), "command", StringComparison.OrdinalIgnoreCase);
+        var wxMode = string.Equals(_ocrMode.SelectedValue?.ToString(), "wxocr", StringComparison.OrdinalIgnoreCase);
         _ocrMode.Enabled = ocrEngineEnabled;
         _ocrUrl.Enabled = ocrEngineEnabled && wxMode;
         _minConfidenceInput.Enabled = ocrEngineEnabled && wxMode;
@@ -2358,7 +2372,13 @@ public sealed class MainForm : Form
             control.Width = previewMode
                 ? Math.Max(460, _monitorTasksHost.ClientSize.Width - 28)
                 : Math.Max(720, _monitorTasksHost.ClientSize.Width - 28);
-            control.Height = Math.Max(control.PreferredSize.Height, 138);
+            var preferredHeight = control is APanel card &&
+                                  card.Controls.Count == 1 &&
+                                  card.Controls[0] is TableLayoutPanel content
+                ? content.GetPreferredSize(new Size(Math.Max(320, control.Width - 2), 0)).Height + 2
+                : control.PreferredSize.Height;
+            control.MinimumSize = new Size(control.MinimumSize.Width, Math.Max(preferredHeight, 138));
+            control.Height = Math.Max(preferredHeight, 138);
         }
     }
 
@@ -2397,6 +2417,115 @@ public sealed class MainForm : Form
     private void SetStatus(string message)
     {
         _statusLabel.Text = $"{DateTime.Now:HH:mm:ss}  {message}";
+        UpdateFloatingStatus(message);
+    }
+
+    private void ShowModal(string title, string content, AntdUI.TType type = AntdUI.TType.Info)
+    {
+        AntdUI.Modal.open(this, title, content, type);
+    }
+
+    private bool ConfirmModal(
+        string title,
+        string content,
+        string okText,
+        string cancelText,
+        AntdUI.TType type = AntdUI.TType.Info)
+    {
+        var config = AntdUI.Modal.config(this, title, content, type);
+        config.OkText = okText;
+        config.CancelText = cancelText;
+        config.OkType = AntdUI.TTypeMini.Primary;
+        config.Draggable = true;
+        return AntdUI.Modal.open(config) == DialogResult.OK;
+    }
+
+    private void ShowFloatingStatusWindow()
+    {
+        if (_floatingStatus.IsDisposed)
+        {
+            return;
+        }
+
+        if (!_floatingStatus.Visible)
+        {
+            _floatingStatus.MoveToDefaultLocation();
+            _floatingStatus.Show();
+        }
+
+        UpdateFloatingStatus();
+    }
+
+    private void HideFloatingStatusWindow()
+    {
+        if (!_floatingStatus.IsDisposed)
+        {
+            _floatingStatus.Hide();
+        }
+    }
+
+    private void ToggleFloatingStatusWindow()
+    {
+        if (_floatingStatus.IsDisposed)
+        {
+            return;
+        }
+
+        if (_floatingStatus.Visible)
+        {
+            _floatingStatus.Hide();
+            return;
+        }
+
+        _floatingStatus.Show();
+        _floatingStatus.Activate();
+        UpdateFloatingStatus();
+    }
+
+    private void ToggleMonitorFromMenu()
+    {
+        _ = ToggleMonitorFromMenuAsync();
+    }
+
+    private async Task ToggleMonitorFromMenuAsync()
+    {
+        await ToggleMonitorAsync();
+    }
+
+    private void UpdateFloatingStatus(string? message = null)
+    {
+        if (_floatingStatus.IsDisposed)
+        {
+            return;
+        }
+
+        var state = _monitoring ? "\u76d1\u63a7\u4e2d" : _previewing ? "\u9884\u89c8\u4e2d" : "\u5c31\u7eea";
+        var status = message;
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            var current = _statusLabel.Text;
+            var separator = current.IndexOf("  ", StringComparison.Ordinal);
+            status = separator >= 0 ? current[(separator + 2)..] : current;
+        }
+
+        _floatingStatus.UpdateStatus(state, status ?? "", _monitoring, _previewing);
+    }
+
+    private void RestoreMainWindow()
+    {
+        if (WindowState == FormWindowState.Minimized)
+        {
+            WindowState = FormWindowState.Normal;
+        }
+
+        Show();
+        Activate();
+    }
+
+    private void ExitApplication()
+    {
+        _allowClose = true;
+        Close();
     }
 
     private static Control CreateCardPage()
@@ -2426,15 +2555,28 @@ public sealed class MainForm : Form
 
     private TableLayoutPanel CreateTaskCard(string title, string description)
     {
+        var card = new APanel
+        {
+            Width = 560,
+            AutoSize = true,
+            BackColor = PanelBack,
+            Radius = 12,
+            Shadow = 3,
+            ShadowColor = Color.FromArgb(24, 20, 52, 43),
+            Padding = new Padding(1),
+            Margin = new Padding(0, 0, 12, 12)
+        };
         var layout = new TableLayoutPanel
         {
             Width = 560,
             AutoSize = true,
             ColumnCount = 1,
             BackColor = PanelBack,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 0, 12)
+            Padding = new Padding(20),
+            Margin = new Padding(0)
         };
+        card.Controls.Add(layout);
+        layout.Dock = DockStyle.Top;
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         var titleLabel = new Label
@@ -2442,7 +2584,7 @@ public sealed class MainForm : Form
             Text = title,
             Dock = DockStyle.Top,
             AutoSize = true,
-            ForeColor = Color.FromArgb(28, 38, 50),
+            ForeColor = Ink,
             Font = new Font(Font.FontFamily, 11F, FontStyle.Bold, GraphicsUnit.Point),
             Margin = new Padding(0, 0, 0, 4)
         };
@@ -2464,28 +2606,35 @@ public sealed class MainForm : Form
         form.AutoScroll = false;
         form.Padding = new Padding(0);
         layout.Controls.Add(form, 0, layout.RowCount++);
-        form.Tag = layout;
+        form.Tag = card;
         return form;
     }
 
     private static Control GetTaskCardContainer(TableLayoutPanel form)
     {
-        return form.Tag as Control ?? form;
+        if (form.Tag is APanel card)
+        {
+            var preferred = form.GetPreferredSize(new Size(form.Width, 0));
+            card.Height = Math.Max(card.Height, preferred.Height + 2);
+            return card;
+        }
+
+        return form;
     }
 
     private static void SetTaskCardPresentation(TableLayoutPanel form, int width)
     {
         if (width <= 0)
         {
-            form.Dock = DockStyle.Fill;
-            form.AutoSize = false;
+            form.Dock = DockStyle.Top;
+            form.AutoSize = true;
         }
 
-        if (GetTaskCardContainer(form) is TableLayoutPanel container)
+        if (GetTaskCardContainer(form) is Control container)
         {
             container.Dock = width <= 0 ? DockStyle.Fill : DockStyle.None;
             container.AutoSize = false;
-            container.Margin = new Padding(0);
+            container.Margin = width <= 0 ? new Padding(0) : new Padding(0, 0, 12, 12);
             container.MaximumSize = width <= 0 ? Size.Empty : new Size(width, 0);
             if (width > 0)
             {
@@ -2530,9 +2679,9 @@ public sealed class MainForm : Form
         control.Dock = DockStyle.None;
         control.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         control.Margin = new Padding(0, 0, 0, 10);
-        if (control is TextBox or ComboBox or NumericUpDown)
+        if (control is AInput or ASelect or AInputNumber or ACheckbox)
         {
-            control.MinimumSize = new Size(240, control.MinimumSize.Height);
+            control.MinimumSize = new Size(240, 38);
             control.Width = Math.Min(560, Math.Max(360, control.Width));
         }
 
@@ -2555,7 +2704,7 @@ public sealed class MainForm : Form
         control.Anchor = AnchorStyles.Left | AnchorStyles.Top;
         control.Margin = new Padding(0, 0, 0, 10);
         control.MinimumSize = new Size(240, control.MinimumSize.Height);
-        if (control is TextBox or ComboBox or NumericUpDown)
+        if (control is AInput or ASelect or AInputNumber)
         {
             control.Width = Math.Min(560, Math.Max(360, control.Width));
         }
@@ -2565,7 +2714,7 @@ public sealed class MainForm : Form
         return label;
     }
 
-    private static Label AddNumber(TableLayoutPanel panel, string labelText, NumericUpDown input, int min, int max)
+    private static Label AddNumber(TableLayoutPanel panel, string labelText, AInputNumber input, int min, int max)
     {
         input.Minimum = min;
         input.Maximum = max;
@@ -2573,28 +2722,35 @@ public sealed class MainForm : Form
         return AddLabeled(panel, labelText, input);
     }
 
-    private static void ConfigureBodyTemplateTextBox(TextBox textBox, string placeholder)
+    private static void ConfigureBodyTemplateTextBox(AInput textBox, string placeholder)
     {
         textBox.Multiline = true;
-        textBox.ScrollBars = ScrollBars.Both;
+        textBox.AutoScroll = true;
         textBox.WordWrap = false;
         textBox.Dock = DockStyle.Fill;
         textBox.Margin = new Padding(6);
         textBox.PlaceholderText = placeholder;
+        textBox.Radius = 8;
+        textBox.BorderColor = Border;
     }
 
-    private static void AddBodyTemplateTab(TabControl tabs, string title, TextBox textBox)
+    private static void AddBodyTemplateTab(ATabs tabs, string title, AInput textBox)
     {
-        var page = new TabPage(title) { Padding = new Padding(6) };
+        var page = new AntdUI.TabPage
+        {
+            Text = title,
+            BackColor = PanelBack,
+            Padding = new Padding(6)
+        };
         page.Controls.Add(textBox);
-        tabs.TabPages.Add(page);
+        tabs.Pages.Add(page);
     }
 
     private static void StretchFormInputs(TableLayoutPanel panel)
     {
         foreach (Control control in panel.Controls)
         {
-            if (control is TextBox or ComboBox or NumericUpDown or CheckedListBox or TabControl)
+            if (control is AInput or ASelect or AInputNumber or CheckedListBox or ATabs)
             {
                 control.Dock = DockStyle.Top;
                 control.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
@@ -2603,45 +2759,140 @@ public sealed class MainForm : Form
         }
     }
 
-    private static void StyleButton(Button button, Color backColor, Color foreColor)
+    private static void StyleButton(AButton button, Color backColor, Color foreColor)
     {
+        button.AutoSize = false;
         button.Height = 40;
         button.Width = Math.Max(button.Width, 128);
+        button.MinimumSize = new Size(128, 40);
         button.TextAlign = ContentAlignment.MiddleCenter;
-        button.UseVisualStyleBackColor = false;
-        button.FlatStyle = FlatStyle.Flat;
-        button.FlatAppearance.BorderSize = 0;
         button.BackColor = backColor;
+        button.DefaultBack = backColor;
         button.ForeColor = foreColor;
+        button.BorderWidth = 0;
+        button.Radius = 8;
+        button.WaveSize = 0;
         button.Cursor = Cursors.Hand;
         button.Margin = new Padding(0, 0, 8, 8);
     }
 
-    private void AddNavButton(FlowLayoutPanel nav, CenteredTabLabel button, string text, Action onClick)
+    private static void ApplyAntdControlTheme(Control root)
+    {
+        foreach (Control control in root.Controls)
+        {
+            switch (control)
+            {
+                case ASelect select:
+                    select.Radius = 8;
+                    select.BorderColor = Border;
+                    select.BorderHover = Accent;
+                    select.BorderActive = Accent;
+                    select.BackColor = PanelBack;
+                    select.Height = Math.Max(select.Height, 38);
+                    select.ListAutoWidth = true;
+                    break;
+                case AInputNumber number:
+                    number.Radius = 8;
+                    number.BorderColor = Border;
+                    number.BorderHover = Accent;
+                    number.BorderActive = Accent;
+                    number.BackColor = PanelBack;
+                    number.Height = Math.Max(number.Height, 38);
+                    number.ShowControl = true;
+                    break;
+                case AInput input:
+                    input.Radius = 8;
+                    input.BorderColor = Border;
+                    input.BorderHover = Accent;
+                    input.BorderActive = Accent;
+                    input.BackColor = PanelBack;
+                    input.Height = Math.Max(input.Height, 38);
+                    break;
+                case ACheckbox checkbox:
+                    checkbox.Fill = Accent;
+                    checkbox.ForeColor = Ink;
+                    checkbox.AutoSize = true;
+                    checkbox.MinimumSize = new Size(240, 30);
+                    checkbox.Height = Math.Max(checkbox.Height, 30);
+                    break;
+                case ATabs tabs:
+                    tabs.ForeColor = Ink;
+                    tabs.Fill = Accent;
+                    tabs.FillHover = Color.FromArgb(75, 164, 127);
+                    tabs.FillActive = Accent;
+                    tabs.Gap = 10;
+                    break;
+                case CheckedListBox checkedList:
+                    checkedList.BackColor = PanelBack;
+                    checkedList.ForeColor = Ink;
+                    checkedList.BorderStyle = BorderStyle.FixedSingle;
+                    checkedList.IntegralHeight = false;
+                    break;
+            }
+
+            if (control.HasChildren)
+            {
+                ApplyAntdControlTheme(control);
+            }
+        }
+    }
+
+    private static void RefreshTaskCardSizes(Control root)
+    {
+        if (root is APanel card &&
+            card.Controls.Count == 1 &&
+            card.Controls[0] is TableLayoutPanel content &&
+            content.AutoSize &&
+            content.Padding.Top >= 18)
+        {
+            var availableWidth = Math.Max(320, card.ClientSize.Width - 2);
+            var preferred = content.GetPreferredSize(new Size(availableWidth, 0));
+            card.MinimumSize = new Size(0, preferred.Height + 2);
+            card.Height = Math.Max(card.Height, preferred.Height + 2);
+        }
+
+        foreach (Control child in root.Controls)
+        {
+            RefreshTaskCardSizes(child);
+        }
+    }
+
+    private void AddNavButton(FlowLayoutPanel nav, AButton button, string text, Action onClick)
     {
         button.Text = text;
-        button.Width = 118;
-        button.Height = 38;
-        button.Margin = new Padding(0, 0, 10, 0);
+        button.Width = 142;
+        button.Height = 48;
+        button.Margin = new Padding(0, 0, 0, 10);
         button.TextAlign = ContentAlignment.MiddleCenter;
-        button.ForeColor = Color.FromArgb(54, 67, 84);
-        button.BackColor = Color.FromArgb(238, 242, 247);
-        button.Font = new Font(Font.FontFamily, 9F, FontStyle.Regular, GraphicsUnit.Point);
+        button.ForeColor = MutedText;
+        button.BackColor = PanelBack;
+        button.DefaultBack = PanelBack;
+        button.Font = new Font(Font.FontFamily, 9.5F, FontStyle.Bold, GraphicsUnit.Point);
+        button.Radius = 9;
+        button.BorderWidth = 0;
+        button.WaveSize = 0;
+        button.ToggleBack = AccentSoft;
+        button.ToggleFore = Ink;
+        button.Type = AntdUI.TTypeMini.Default;
         button.Cursor = Cursors.Hand;
         button.Click += (_, _) => onClick();
         nav.Controls.Add(button);
     }
 
-    private void AddSubTabButton(FlowLayoutPanel nav, CenteredTabLabel button, string text, Action onClick)
+    private void AddSubTabButton(FlowLayoutPanel nav, AButton button, string text, Action onClick)
     {
         button.Text = text;
-        button.Width = 148;
-        button.Height = 36;
-        button.Margin = new Padding(0, 0, 10, 0);
+        button.Width = 150;
+        button.Height = 38;
+        button.Margin = new Padding(0, 0, 8, 0);
         button.TextAlign = ContentAlignment.MiddleCenter;
         button.ForeColor = Color.FromArgb(54, 67, 84);
-        button.BackColor = Color.FromArgb(238, 242, 247);
+        button.BackColor = PageBack;
         button.Font = new Font(Font.FontFamily, 9F, FontStyle.Regular, GraphicsUnit.Point);
+        button.Radius = 8;
+        button.BorderWidth = 0;
+        button.ToggleBack = AccentSoft;
+        button.ToggleFore = Accent;
         button.Cursor = Cursors.Hand;
         button.Click += (_, _) => onClick();
         nav.Controls.Add(button);
@@ -2670,8 +2921,10 @@ public sealed class MainForm : Form
         var buttons = new[] { _monitorOcrTaskButton, _monitorDialogTaskButton, _monitorTaskbarTaskButton };
         for (var i = 0; i < buttons.Length; i++)
         {
-            buttons[i].BackColor = i == index ? Accent : Color.FromArgb(238, 242, 247);
-            buttons[i].ForeColor = i == index ? Color.White : Color.FromArgb(54, 67, 84);
+            buttons[i].BackColor = i == index ? AccentSoft : PageBack;
+            buttons[i].ForeColor = i == index ? Color.White : MutedText;
+            buttons[i].Font = new Font(Font.FontFamily, 9F, i == index ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Point);
+            buttons[i].Toggle = i == index;
         }
 
         LayoutMonitorSplit();
@@ -2692,8 +2945,11 @@ public sealed class MainForm : Form
         var buttons = new[] { _navMonitorButton, _navOcrButton, _navWebhookButton, _navLogButton };
         for (var i = 0; i < buttons.Length; i++)
         {
-            buttons[i].BackColor = i == index ? Accent : Color.FromArgb(238, 242, 247);
-            buttons[i].ForeColor = i == index ? Color.White : Color.FromArgb(54, 67, 84);
+            buttons[i].BackColor = i == index ? AccentSoft : PanelBack;
+            buttons[i].DefaultBack = i == index ? AccentSoft : PanelBack;
+            buttons[i].ForeColor = i == index ? Ink : MutedText;
+            buttons[i].Toggle = i == index;
+            buttons[i].Type = AntdUI.TTypeMini.Default;
         }
     }
 
@@ -2701,12 +2957,30 @@ public sealed class MainForm : Form
     {
         if (!_allowClose && e.CloseReason == CloseReason.UserClosing)
         {
-            var result = MessageBox.Show(
-                "\u8981\u9000\u51fa\u7a0b\u5e8f\u5417\uff1f\n\n\u662f\uff1a\u9000\u51fa\n\u5426\uff1a\u6700\u5c0f\u5316\n\u53d6\u6d88\uff1a\u7559\u5728\u5f53\u524d\u7a97\u53e3",
+            var closeConfig = AntdUI.Modal.config(
+                this,
                 "\u5173\u95ed\u786e\u8ba4",
-                MessageBoxButtons.YesNoCancel,
-                MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button2);
+                "\u9009\u62e9\u9000\u51fa\u8f6f\u4ef6\u3001\u6700\u5c0f\u5316\u540e\u7ee7\u7eed\u76d1\u63a7\uff0c\u6216\u7559\u5728\u5f53\u524d\u7a97\u53e3\u3002",
+                AntdUI.TType.Info);
+            closeConfig.Btns =
+            [
+                new AntdUI.Modal.Btn("minimize", "\u6700\u5c0f\u5316", AntdUI.TTypeMini.Default)
+            ];
+            closeConfig.OkText = "\u9000\u51fa\u8f6f\u4ef6";
+            closeConfig.CancelText = "\u53d6\u6d88";
+            closeConfig.OkType = AntdUI.TTypeMini.Primary;
+            closeConfig.Draggable = true;
+            var result = DialogResult.Cancel;
+            closeConfig.OnBtns = button =>
+            {
+                result = button.Name == "minimize" ? DialogResult.No : DialogResult.Cancel;
+                return true;
+            };
+            var defaultResult = AntdUI.Modal.open(closeConfig);
+            if (result == DialogResult.Cancel && defaultResult == DialogResult.OK)
+            {
+                result = DialogResult.Yes;
+            }
 
             if (result == DialogResult.No)
             {
@@ -2736,6 +3010,7 @@ public sealed class MainForm : Form
         _localOcrService.Dispose();
         _updateService.Dispose();
         _notificationService.Dispose();
+        _floatingStatus.Dispose();
         base.OnFormClosing(e);
     }
 

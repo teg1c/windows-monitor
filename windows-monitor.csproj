@@ -8,7 +8,7 @@
     <AssemblyName>windows-monitor</AssemblyName>
     <RootNamespace>MhxyNotify</RootNamespace>
     <ApplicationIcon>Assets\windows-monitor.ico</ApplicationIcon>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.1.10</VersionPrefix>
     <Product>&#x7075;&#x8baf;&#x54e8;</Product>
     <Company>tegic</Company>
     <Authors>tegic</Authors>
